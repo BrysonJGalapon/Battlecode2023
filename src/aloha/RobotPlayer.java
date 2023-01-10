@@ -10,6 +10,7 @@ import java.util.Random;
 import java.util.Set;
 
 import aloha.robots.*;
+import aloha.utils.Log;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -45,6 +46,9 @@ public strictfp class RobotPlayer {
         // Set the round this robot was born
         birthRound = rc.getRoundNum();
 
+        // Set the logger's rc
+        Log.rc = rc;
+
         while (true) {
             // This code runs during the entire lifespan of the robot, which is why it is in an infinite
             // loop. If we ever leave this loop and return from run(), the robot dies! At the end of the
@@ -53,7 +57,7 @@ public strictfp class RobotPlayer {
             // Keep turnCount and round number in sync. These can be de-synced if
             //  we overuse bytecode. Note that this does NOT catch the case of an infinite loop.
             if (turnCount != rc.getRoundNum()-birthRound) {
-              System.out.println("I'm a " + rc.getType() + " and my turnCount is " + turnCount + " when it should be " + (rc.getRoundNum()-birthRound));
+              Log.println("I'm a " + rc.getType() + " and my turnCount is " + turnCount + " when it should be " + (rc.getRoundNum()-birthRound));
               rc.resign();
             }
 
