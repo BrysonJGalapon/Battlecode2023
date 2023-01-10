@@ -2,10 +2,13 @@ package aloha.robots;
 
 import battlecode.common.*;
 import java.util.*;
-import aloha.utils.Utils;
+import aloha.utils.*;
+import aloha.pathing.*;
 
 public class Carrier {
   static final Random rng = new Random(6147);
+
+  private static final Pathfinder randomPathFinder = new RandomPathFinder();
 
   public static void run(RobotController rc) throws GameActionException {
     if (rc.getAnchor() != null) {
@@ -65,10 +68,11 @@ public class Carrier {
           if (rc.canMove(dir))
               rc.move(dir);
       }
+
       // Also try to move randomly.
-      Direction dir = Utils.directions[rng.nextInt(Utils.directions.length)];
-      if (rc.canMove(dir)) {
-          rc.move(dir);
+      Optional<Direction> dir = randomPathFinder.findPath(null, null, rc);
+      if (dir.isPresent()) {
+        rc.move(dir.get());
       }
   }
 }

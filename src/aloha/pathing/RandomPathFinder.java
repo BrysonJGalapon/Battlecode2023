@@ -1,0 +1,17 @@
+package aloha.pathing;
+
+import battlecode.common.*;
+import java.util.*;
+import aloha.utils.*;
+
+public class RandomPathFinder implements Pathfinder {
+  private static final Random rng = new Random(6147);
+
+  public Optional<Direction> findPath(MapLocation src, MapLocation dst, RobotController rc) throws GameActionException {
+    Direction dir = Utils.directions[rng.nextInt(Utils.directions.length)];
+    if (rc.canMove(dir)) {
+        rc.move(dir);
+    }
+    return Optional.empty();
+  }
+}
