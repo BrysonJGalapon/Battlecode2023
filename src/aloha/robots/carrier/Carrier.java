@@ -1,4 +1,4 @@
-package aloha.robots;
+package aloha.robots.carrier;
 
 import battlecode.common.*;
 import java.util.*;

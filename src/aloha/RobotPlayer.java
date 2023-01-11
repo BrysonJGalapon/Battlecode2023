@@ -9,7 +9,12 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import aloha.robots.*;
+import aloha.robots.amplifier.*;
+import aloha.robots.booster.*;
+import aloha.robots.carrier.*;
+import aloha.robots.destabilizer.*;
+import aloha.robots.headquarters.*;
+import aloha.robots.launcher.*;
 import aloha.utils.Log;
 
 /**

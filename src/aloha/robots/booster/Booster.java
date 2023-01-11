@@ -1,8 +1,8 @@
-package aloha.robots;
+package aloha.robots.booster;
 
 import battlecode.common.*;
 
-public class Destabilizer {
+public class Booster {
   public static void run(RobotController rc) throws GameActionException {
     // TODO
   }
