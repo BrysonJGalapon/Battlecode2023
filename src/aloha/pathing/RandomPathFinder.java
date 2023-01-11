@@ -4,7 +4,7 @@ import battlecode.common.*;
 import java.util.*;
 import aloha.utils.*;
 
-public class RandomPathFinder implements Pathfinder {
+public class RandomPathFinder implements PathFinder {
   private static final Random rng = new Random(6147);
 
   public Optional<Direction> findPath(MapLocation src, MapLocation dst, RobotController rc) throws GameActionException {
