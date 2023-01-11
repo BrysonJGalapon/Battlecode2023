@@ -8,7 +8,7 @@ import aloha.pathing.*;
 public class Carrier {
   static final Random rng = new Random(6147);
 
-  private static final Pathfinder randomPathFinder = new RandomPathFinder();
+  private static final PathFinder randomPathFinder = new RandomPathFinder();
 
   public static void run(RobotController rc) throws GameActionException {
     if (rc.getAnchor() != null) {
