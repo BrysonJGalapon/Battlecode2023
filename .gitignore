@@ -1,5 +1,7 @@
 ###### BATTLECODE ######
 
+gradle.properties
+
 /matches
 /client
 
