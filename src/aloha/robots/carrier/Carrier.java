@@ -67,9 +67,11 @@ public class Carrier {
         rc.move(dir.get());
       }
 
+      rc.setIndicatorString("no island in view.. moving randomly");
       return;
     }
 
+    rc.setIndicatorString("trying to place anchor at " + dst);
     // if we can place an anchor, place it and go to TAKE_ANCHOR state
     if (rc.canPlaceAnchor()) {
       rc.placeAnchor();

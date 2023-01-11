@@ -8,6 +8,8 @@ public class Headquarters {
   private static HeadquartersState state = HeadquartersState.BUILD_ANCHOR;
   private static final Random rng = new Random(6147);
 
+  private static int buildAnchorCooldown = 0;
+
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
       case BUILD_ANCHOR:   runBuildAnchor(rc);   break;
@@ -17,23 +19,32 @@ public class Headquarters {
   }
 
   public static void runBuildAnchor(RobotController rc) throws GameActionException {
+      rc.setIndicatorString("building anchor");
       // build an anchor, then move to BUILD_CARRIER state
       if (rc.canBuildAnchor(Anchor.STANDARD)) {
           rc.buildAnchor(Anchor.STANDARD);
           state = HeadquartersState.BUILD_CARRIER;
+          buildAnchorCooldown = 10;
       }
 
       return;
   }
 
   public static void runBuildCarrier(RobotController rc) throws GameActionException {
-    // if there are carriers next to us, we assume they are waiting for an anchor. Move to BUILD_ANCHOR state.
-    RobotInfo[] robotInfos = rc.senseNearbyRobots(2);
-    for (RobotInfo robotInfo : robotInfos) {
-      if (robotInfo.type == RobotType.CARRIER) {
-        state = HeadquartersState.BUILD_ANCHOR;
-        return;
+    rc.setIndicatorString("building carrier");
+
+
+    if (buildAnchorCooldown == 0) {
+      // if there are carriers next to us after cooling down, we assume they are waiting for an anchor. Move to BUILD_ANCHOR state.
+      RobotInfo[] robotInfos = rc.senseNearbyRobots(2);
+      for (RobotInfo robotInfo : robotInfos) {
+        if (robotInfo.type == RobotType.CARRIER) {
+          state = HeadquartersState.BUILD_ANCHOR;
+          return;
+        }
       }
+    } else if (buildAnchorCooldown > 0) {
+      buildAnchorCooldown -= 1;
     }
 
     // no carriers next to us, try to build some
