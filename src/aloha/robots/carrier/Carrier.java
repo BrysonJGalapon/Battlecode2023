@@ -67,7 +67,6 @@ public class Carrier {
         rc.move(dir.get());
       }
 
-      rc.setIndicatorString("no island in view.. moving randomly");
       return;
     }
 

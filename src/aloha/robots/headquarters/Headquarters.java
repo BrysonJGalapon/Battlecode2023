@@ -33,7 +33,7 @@ public class Headquarters {
   public static void runBuildCarrier(RobotController rc) throws GameActionException {
     rc.setIndicatorString("building carrier");
 
-
+    // wait for some time before building an anchor again
     if (buildAnchorCooldown == 0) {
       // if there are carriers next to us after cooling down, we assume they are waiting for an anchor. Move to BUILD_ANCHOR state.
       RobotInfo[] robotInfos = rc.senseNearbyRobots(2);
@@ -47,7 +47,7 @@ public class Headquarters {
       buildAnchorCooldown -= 1;
     }
 
-    // no carriers next to us, try to build some
+    // no carriers next to us, try to build some carriers
     Direction dir = Utils.directions[rng.nextInt(Utils.directions.length)];
     MapLocation newLoc = rc.getLocation().add(dir);
     if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
