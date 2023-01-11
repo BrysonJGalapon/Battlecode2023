@@ -2,32 +2,46 @@ package aloha.robots.headquarters;
 
 import battlecode.common.*;
 import java.util.*;
-import aloha.utils.Utils;
+import aloha.utils.*;
 
 public class Headquarters {
-  static final Random rng = new Random(6147);
+  private static HeadquartersState state = HeadquartersState.BUILD_ANCHOR;
+  private static final Random rng = new Random(6147);
 
   public static void run(RobotController rc) throws GameActionException {
-    // Pick a direction to build in.
+    switch(state) {
+      case BUILD_ANCHOR:   runBuildAnchor(rc);   break;
+      case BUILD_CARRIER:  runBuildCarrier(rc);   break;
+      default:      throw new RuntimeException("should not be here");
+    }
+  }
+
+  public static void runBuildAnchor(RobotController rc) throws GameActionException {
+      // build an anchor, then move to BUILD_CARRIER state
+      if (rc.canBuildAnchor(Anchor.STANDARD)) {
+          rc.buildAnchor(Anchor.STANDARD);
+          state = HeadquartersState.BUILD_CARRIER;
+      }
+
+      return;
+  }
+
+  public static void runBuildCarrier(RobotController rc) throws GameActionException {
+    // if there are carriers next to us, we assume they are waiting for an anchor. Move to BUILD_ANCHOR state.
+    RobotInfo[] robotInfos = rc.senseNearbyRobots(2);
+    for (RobotInfo robotInfo : robotInfos) {
+      if (robotInfo.type == RobotType.CARRIER) {
+        state = HeadquartersState.BUILD_ANCHOR;
+        return;
+      }
+    }
+
+    // no carriers next to us, try to build some
     Direction dir = Utils.directions[rng.nextInt(Utils.directions.length)];
     MapLocation newLoc = rc.getLocation().add(dir);
-    if (rc.canBuildAnchor(Anchor.STANDARD)) {
-        // If we can build an anchor do it!
-        rc.buildAnchor(Anchor.STANDARD);
-        rc.setIndicatorString("Building anchor! " + rc.getAnchor());
-    }
-    if (rng.nextBoolean()) {
-        // Let's try to build a carrier.
-        rc.setIndicatorString("Trying to build a carrier");
-        if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
-            rc.buildRobot(RobotType.CARRIER, newLoc);
-        }
-    } else {
-        // Let's try to build a launcher.
-        rc.setIndicatorString("Trying to build a launcher");
-        if (rc.canBuildRobot(RobotType.LAUNCHER, newLoc)) {
-            rc.buildRobot(RobotType.LAUNCHER, newLoc);
-        }
+    if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
+        rc.buildRobot(RobotType.CARRIER, newLoc);
+        return;
     }
   }
 }
