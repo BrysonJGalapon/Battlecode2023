@@ -42,3 +42,15 @@ However, we recommend you make a new bot by copying `examplefuncsplayer` to a ne
     Create a submittable zip file
 - `./gradlew tasks`
     See what else you can do!
+
+### See average bytecode left per robot type
+- Set `printBytecode` to `true` in `RobotPlayer.java`
+- Replace <ROBOT_TYPE> with one of:
+  - HEADQUARTERS
+  - CARRIER
+  - LAUNCHER
+  - AMPLIFIER
+  - BOOSTER
+  - DESTABILIZER
+
+  ```./gradlew run -PteamA=aleamB=silentexamplefuncsplayer -Pmaps=maptestsmall | grep "<ROBOT_TYPE> bytecode" | cut -d"$" -f2 | awk '{ total += $1; count++ } END { print total/count }'```

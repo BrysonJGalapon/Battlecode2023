@@ -30,6 +30,7 @@ public strictfp class RobotPlayer {
      */
     static int turnCount = 0;
     static int birthRound = -1;
+    static final boolean printBytecode = false;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -79,6 +80,12 @@ public strictfp class RobotPlayer {
                     case BOOSTER:           Booster.run(rc);        break;
                     case DESTABILIZER:      Destabilizer.run(rc);   break;
                     case AMPLIFIER:         Amplifier.run(rc);      break;
+                }
+
+                // If enabled, print the amount of bytecode left per round for this robot. This is useful for performance
+                //  analysis and debugging.
+                if (printBytecode) {
+                  Log.println(rc.getType() + " bytecode$" + Clock.getBytecodesLeft());
                 }
             } catch (GameActionException e) {
                 // Oh no! It looks like we did something illegal in the Battlecode world. You should
