@@ -64,13 +64,7 @@ public class Carrier {
     // If we don't already have a resource location to path to, try to identify one
     if (dst == null) {
       // If we've cached any Mana or Ad wells, path to the closest one
-      Set<MapLocation> knownWells;
-      switch(resourceType) {
-        case ADAMANTIUM: knownWells = knownAdmantiniumWells; break;
-        case MANA:       knownWells = knownManaWells;        break;
-        case ELIXIR:     knownWells = knownElixirWells;      break;
-        default: throw new RuntimeException("Should not be here");
-      }
+      Set<MapLocation> knownWells = getKnownWellsFor(resourceType);
       for ( MapLocation loc : knownWells) {
         if (dst == null || myLocation.distanceSquaredTo(loc) < myLocation.distanceSquaredTo(dst)) {
           dst = loc;
@@ -86,7 +80,7 @@ public class Carrier {
           }
 
           // Cache seen well location, for faster lookup next time
-          knownWells.add(wellInfo.getMapLocation());
+          getKnownWellsFor(wellInfo.getResourceType()).add(wellInfo.getMapLocation());
 
           // If we see a resource well, try to communicate the well info even if
           //  we don't collect from it, since other robots might want to collect from
@@ -356,5 +350,16 @@ public class Carrier {
       case ELIXIR:      return MessageType.EX_WELL_LOC;
       default:          throw new RuntimeException("should not be here");
     }
+  }
+
+  private static Set<MapLocation> getKnownWellsFor(ResourceType resourceType) {
+    Set<MapLocation> knownWells;
+    switch(resourceType) {
+      case ADAMANTIUM: knownWells = knownAdmantiniumWells; break;
+      case MANA:       knownWells = knownManaWells;        break;
+      case ELIXIR:     knownWells = knownElixirWells;      break;
+      default: throw new RuntimeException("Should not be here");
+    }
+    return knownWells;
   }
 }
