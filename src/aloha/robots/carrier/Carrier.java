@@ -283,6 +283,7 @@ public class Carrier {
 
   private static boolean communicateWellInfo(WellInfo wellInfo, RobotController rc) throws GameActionException {
     // TODO
+    return false;
   }
 
   private static MessageType getMessageTypeOf(ResourceType resourceType)  {

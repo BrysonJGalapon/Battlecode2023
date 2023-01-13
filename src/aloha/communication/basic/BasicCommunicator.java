@@ -87,8 +87,9 @@ public class BasicCommunicator implements Communicator {
     List<Message> messages = new LinkedList<>();
 
     // Receive all messages written since the latest message was received. Cap the number of
-    //  received messages to 9, since there will be at most 9 new messages to receive.
-    for (int count = numReceivedMessages; count < numWrites && count < numReceivedMessages+9; count++) {
+    //  received messages to 9, since there will be at most 9 new messages to receive. Read the
+    //  messages in reverse chronological order, but build the message list in chronological order.
+    for (int count = numWrites-1; count >= numReceivedMessages && count >= numWrites-9; count--) {
       int targetIdx = firstIndex + (count % 9) + 1;
       int encoding = rc.readSharedArray(targetIdx);
 
@@ -98,7 +99,7 @@ public class BasicCommunicator implements Communicator {
       }
 
       Message message = Decoding.locationMessage(encoding);
-      messages.add(message);
+      messages.add(0, message);
     }
 
     // It's possible we haven't read as many received messages as was ever written, but
