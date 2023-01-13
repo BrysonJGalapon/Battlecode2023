@@ -67,8 +67,13 @@ public class BasicCommunicator implements Communicator {
     if (!rc.canWriteSharedArray(targetIdx, encoding)) {
       return false;
     }
+    if(!rc.canWriteSharedArray(firstIndex, numWrites+1)) {
+      return false;
+    }
 
     rc.writeSharedArray(targetIdx, encoding);
+    rc.writeSharedArray(firstIndex, numWrites+1);
+
     return true;
   }
 
