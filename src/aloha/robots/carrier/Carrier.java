@@ -110,10 +110,19 @@ public class Carrier {
       hqLoc = getHQLoc(rc);
     }
 
-    // Try to deposit resources to the HQ, and move to COLLECT_RESOURCE state.
+    // Try to deposit resources to the HQ
     int resourceAmount = rc.getResourceAmount(resourceType);
     if (rc.canTransferResource(hqLoc, resourceType, resourceAmount)) {
       rc.transferResource(hqLoc, resourceType, resourceAmount);
+
+      // If the HQ has an anchor, take it
+      if (rc.canSenseRobotAtLocation(hqLoc)) {
+        RobotInfo hqInfo = rc.senseRobotAtLocation(hqLoc);
+        if (hqInfo.getNumAnchors(Anchor.STANDARD) > 0) {
+          state = CarrierState.TAKE_ANCHOR;
+          return;
+        }
+      }
 
       state = CarrierState.COLLECT_RESOURCE;
       // TODO reset resourceType and dst to collect different resourceTypes based
@@ -143,6 +152,17 @@ public class Carrier {
       // reset state used during PLACE_ANCHOR state
       dst = null;
       return;
+    }
+
+    // If the HQ does not have an anchor anymore, go to COLLECT_RESOURCES state
+    if (rc.canSenseRobotAtLocation(hqLoc)) {
+      RobotInfo hqInfo = rc.senseRobotAtLocation(hqLoc);
+      if (hqInfo.getNumAnchors(Anchor.STANDARD) == 0) {
+        state = CarrierState.COLLECT_RESOURCE;
+        // Reset state used during COLLECT_RESOURCE state
+        dst = null;
+        return;
+      }
     }
 
     // Try to take an anchor from the HQ, and move to PLACE_ANCHOR state
