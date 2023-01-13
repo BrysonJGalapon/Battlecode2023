@@ -6,7 +6,7 @@ import aloha.utils.*;
 import aloha.communication.*;
 
 public class Headquarters {
-  private static HeadquartersState state = HeadquartersState.BUILD_ANCHOR;
+  private static HeadquartersState state = HeadquartersState.BUILD_CARRIER;
   private static final Communicator communicator = Communicator.newCommunicator();
   private static final Random rng = new Random(6147);
 

@@ -250,10 +250,14 @@ public class Carrier {
     }
 
     rc.setIndicatorString("trying to place anchor at " + dst);
-    // if we can place an anchor, place it and go to TAKE_ANCHOR state
+    // if we can place an anchor, place it and go to COLLECT_RESOURCES state
     if (rc.canPlaceAnchor()) {
       rc.placeAnchor();
-      state = CarrierState.TAKE_ANCHOR;
+      state = CarrierState.COLLECT_RESOURCE;
+      // Reset resourceType and dst to collect different resourceTypes based
+      //  on the next trip.
+      resourceType = null;
+      dst = null;
       return;
     }
 
