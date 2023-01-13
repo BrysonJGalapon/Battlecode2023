@@ -18,7 +18,7 @@ public class BasicCommunicator implements Communicator {
   Indices 44-53 are for messages intended for destabilizer robots.
   Indices 54-63 are for messages intended for amplifier robots.
 
-  The first index in each of the robot-specific ranges (e.g. 4, 14, 24, etc.) hold
+  The first index in each of the robot-specific ranges (e.g. 4, 14, 24, etc.) holds
     a counter to the total number of writes made to this range ever made. If the
     counter overlows, it returns to 0.
   ***/
@@ -95,6 +95,12 @@ public class BasicCommunicator implements Communicator {
       Message message = Decoding.locationMessage(encoding);
       messages.add(message);
     }
+
+    // It's possible we haven't read as many received messages as was ever written, but
+    //  that only happens when more than 9 messages were written to the range in the last turn.
+    //  Those messages are effectively lost, so we count them here anyway to ensure that
+    //  subsequent invocations of this function will be correct.
+    numReceivedMessages = numWrites;
 
     return messages;
   }
