@@ -6,6 +6,7 @@ import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
 import aloha.pathing.WallFollower;
 
+import java.util.Random;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Optional;
@@ -14,6 +15,7 @@ public class FuzzyPathFinder extends WallFollower implements PathFinder {
     private static final int IMMOVABLE_OBJECT_COST = 1000;
     private static final int MAX_VISITED_SIZE = 7;
     private final Deque<MapLocation> visited = new LinkedList<>();
+    private static final Random rng = new Random(3820);
 
     private boolean isLeftDisabled = false;
     private boolean isRightDisabled = false;
@@ -84,6 +86,7 @@ public class FuzzyPathFinder extends WallFollower implements PathFinder {
 
         int minCost = 10 * IMMOVABLE_OBJECT_COST;
         int minCostIndex = -1;
+        int numMinCostEl = 0;
         for (int i = 0; i < costs.length; i++) {
             if (this.isLeftDisabled && (i == 3)) {
                 continue;
@@ -96,6 +99,10 @@ public class FuzzyPathFinder extends WallFollower implements PathFinder {
             if (costs[i] < minCost) {
                 minCost = costs[i];
                 minCostIndex = i;
+                numMinCostEl = 1;
+            } else if (costs[i] == minCost && rng.nextInt(numMinCostEl+1) == 0) {
+                minCostIndex = i;
+                numMinCostEl++;
             }
         }
 
