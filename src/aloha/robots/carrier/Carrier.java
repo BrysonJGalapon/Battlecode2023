@@ -22,6 +22,12 @@ public class Carrier {
   // resourceType is a cached data field representing the resource type that
   //  this robot is collecting or depositing.
   private static ResourceType resourceType;
+  // knownManaWells, knownAdmantiniumWells, and knownElixirWells are cached
+  //  fields representing known locations of certain well-types. knownManaWells and knownAdmantiniumWells may be
+  //  inaccurate over time, since Mn and Ad wells can be converted to Elixir wells.
+  private static Set<MapLocation> knownManaWells = new HashSet<>();
+  private static Set<MapLocation> knownAdmantiniumWells = new HashSet<>();
+  private static Set<MapLocation> knownElixirWells = new HashSet<>();
 
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
@@ -57,18 +63,37 @@ public class Carrier {
 
     // If we don't already have a resource location to path to, try to identify one
     if (dst == null) {
-      // If we see any wells of our resourceType in sight, path to the closest one
-      WellInfo[] wellInfos = rc.senseNearbyWells();
-      for (WellInfo wellInfo : wellInfos) {
-        if ((wellInfo.getResourceType() == resourceType) && (dst == null || myLocation.distanceSquaredTo(wellInfo.getMapLocation()) < myLocation.distanceSquaredTo(dst))) {
-          dst = wellInfo.getMapLocation();
+      // If we've cached any Mana or Ad wells, path to the closest one
+      Set<MapLocation> knownWells;
+      switch(resourceType) {
+        case ADAMANTIUM: knownWells = knownAdmantiniumWells; break;
+        case MANA:       knownWells = knownManaWells;        break;
+        case ELIXIR:     knownWells = knownElixirWells;      break;
+        default: throw new RuntimeException("Should not be here");
+      }
+      for ( MapLocation loc : knownWells) {
+        if (dst == null || myLocation.distanceSquaredTo(loc) < myLocation.distanceSquaredTo(dst)) {
+          dst = loc;
         }
+      }
 
-        // If we see a resource well, try to communicate the well info even if
-        //  we don't collect from it, since other robots might want to collect from
-        //  it.
-        boolean success = communicateWellInfo(wellInfo, rc);
-        // TODO cache unsuccessful communications for retry later
+      // No cached resource locations. If we see any wells of our resourceType in sight, path to the closest one
+      if (dst == null) {
+        WellInfo[] wellInfos = rc.senseNearbyWells();
+        for (WellInfo wellInfo : wellInfos) {
+          if ((wellInfo.getResourceType() == resourceType) && (dst == null || myLocation.distanceSquaredTo(wellInfo.getMapLocation()) < myLocation.distanceSquaredTo(dst))) {
+            dst = wellInfo.getMapLocation();
+          }
+
+          // Cache seen well location, for faster lookup next time
+          knownWells.add(wellInfo.getMapLocation());
+
+          // If we see a resource well, try to communicate the well info even if
+          //  we don't collect from it, since other robots might want to collect from
+          //  it.
+          boolean success = communicateWellInfo(wellInfo, rc);
+          // TODO cache unsuccessful communications for retry later
+        }
       }
 
       // No wells of our resourceType in sight. If we received some well messages for our resourceType, path to the closest one
@@ -78,6 +103,9 @@ public class Carrier {
           if (dst == null || myLocation.distanceSquaredTo(message.loc) < myLocation.distanceSquaredTo(dst)) {
             dst = message.loc;
           }
+
+          // Cache heard well location, for faster lookup next time
+          knownWells.add(message.loc);
         }
       }
 
