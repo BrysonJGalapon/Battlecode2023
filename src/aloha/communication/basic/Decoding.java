@@ -23,9 +23,10 @@ public class Decoding {
     switch(encoding) {
     case 1:   return MessageType.HQ_STATE;
     case 2:   return MessageType.ENEMY_LOC;
-    case 3:   return MessageType.AD_WELL_LOC;
-    case 4:   return MessageType.MN_WELL_LOC;
-    case 5:   return MessageType.EX_WELL_LOC;
+    case 3:   return MessageType.NO_ENEMY_LOC;
+    case 4:   return MessageType.AD_WELL_LOC;
+    case 5:   return MessageType.MN_WELL_LOC;
+    case 6:   return MessageType.EX_WELL_LOC;
     default: throw new RuntimeException("should not be here");
     }
   }

@@ -7,6 +7,9 @@ public enum MessageType {
   // ENEMY_LOC messages store a MapLocation of the enemy
   ENEMY_LOC,
 
+  // NO_ENEMY_LOC messages store a MapLocation of where the enemy is not
+  NO_ENEMY_LOC,
+
   // AD_WELL_LOC messages store a MapLocation of the Ad well
   AD_WELL_LOC,
 

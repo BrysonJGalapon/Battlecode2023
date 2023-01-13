@@ -37,9 +37,10 @@ public class Encoding {
     switch(messageType) {
     case HQ_STATE:            return 1;
     case ENEMY_LOC:           return 2;
-    case AD_WELL_LOC:         return 3;
-    case MN_WELL_LOC:         return 4;
-    case EX_WELL_LOC:         return 5;
+    case NO_ENEMY_LOC:        return 3;
+    case AD_WELL_LOC:         return 4;
+    case MN_WELL_LOC:         return 5;
+    case EX_WELL_LOC:         return 6;
     default: throw new RuntimeException("should not be here");
     }
   }
