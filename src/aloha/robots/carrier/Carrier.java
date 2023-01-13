@@ -8,44 +8,52 @@ import aloha.communication.*;
 import static aloha.RobotPlayer.OPPONENT;
 
 public class Carrier {
-  private static CarrierState state = CarrierState.TAKE_ANCHOR;
+  private static CarrierState state = CarrierState.COLLECT_RESOURCE;
   private static final Communicator communicator = Communicator.newCommunicator();
   private static final PathFinder randomPathFinder = new RandomPathFinder();
   private static final PathFinder fuzzyPathFinder = new FuzzyPathFinder();
 
+  // hqLoc is a cached data field of the HQ this robot belongs to.
   private static MapLocation hqLoc;
+  // dst is a cached data field representing a destination location. The meaning
+  //  of this field depends on the state this robot is in.
   private static MapLocation dst;
+  // resourceType is a cached data field representing the resource type that
+  //  this robot is collecting or depositing.
+  private static ResourceType resourceType;
 
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
-      case FIND_HQ:           runFindHQ(rc);          break;
       case TAKE_ANCHOR:       runTakeAnchor(rc);      break;
       case PLACE_ANCHOR:      runPlaceAnchor(rc);     break;
       case ATTACK_LOC:        runAttackLoc(rc);       break;
-      default:      throw new RuntimeException("should not be here");
+      case COLLECT_RESOURCE:  runCollectResource(rc); break;
+      case DEPOSIT_RESOURCE:  runDepositResource(rc); break;
+      case SURVIVE:           runSurvive(rc);         break;
+      default:                throw new RuntimeException("should not be here");
     }
   }
 
-  private static void runFindHQ(RobotController rc) throws GameActionException {
-    // TODO
+  private static void runCollectResource(RobotController rc) throws GameActionException {
+    // Identify an HQ.
+    if (hqLoc == null) {
+      hqLoc = getHQLoc(rc);
+    }
+
+    if (resourceType == null) {
+      if (rc.getRoundNum() < 800) {
+
+      }
+    }
+  }
+
+  private static void runDepositResource(RobotController rc) throws GameActionException {
   }
 
   private static void runTakeAnchor(RobotController rc) throws GameActionException {
     // Identify an HQ.
     if (hqLoc == null) {
-      RobotInfo[] robotInfos = rc.senseNearbyRobots();
-      for (RobotInfo robotInfo : robotInfos) {
-        if (robotInfo.type == RobotType.HEADQUARTERS) {
-          hqLoc = robotInfo.location;
-          break;
-        }
-      }
-
-      // No HQs in sight. Try to find one.
-      if (hqLoc == null) {
-        state = CarrierState.FIND_HQ;
-        return;
-      }
+      hqLoc = getHQLoc(rc);
     }
 
     // If we're already holding an anchor, go to PLACE_ANCHOR state
@@ -154,6 +162,11 @@ public class Carrier {
     // Find the enemy in sight with the lowest health
     RobotInfo enemyWithLowestHealth = null;
     for (RobotInfo enemy : enemies) {
+      // Do not attack HQs, since they cannot be destroyed.
+      if (enemy.getType() == RobotType.HEADQUARTERS) {
+        continue;
+      }
+
       if (enemyWithLowestHealth == null || enemy.getHealth() < enemyWithLowestHealth.getHealth()) {
         enemyWithLowestHealth = enemy;
       }
@@ -170,5 +183,22 @@ public class Carrier {
     if (dir.isPresent() && rc.canMove(dir.get())) {
       rc.move(dir.get());
     }
+  }
+
+  // getHQLoc gets the HQ location to associate to this robot.
+  private static MapLocation getHQLoc(RobotController rc) throws GameActionException {
+    RobotInfo[] robotInfos = rc.senseNearbyRobots();
+    for (RobotInfo robotInfo : robotInfos) {
+      if (robotInfo.type == RobotType.HEADQUARTERS) {
+        return robotInfo.location;
+      }
+    }
+
+    List<Message> messages = communicator.receiveMessages(MessageType.HQ_STATE, rc);
+    return messages.get(0).loc;
+  }
+
+  private static void runSurvive(RobotController rc) throws GameActionException {
+    // TODO
   }
 }

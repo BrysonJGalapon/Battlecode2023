@@ -46,9 +46,8 @@ public class Decoding {
 
   public static HeadquartersState hqState(int encoding) {
     switch(encoding) {
-    case 1:   return HeadquartersState.DEAD;
-    case 2:   return HeadquartersState.BUILD_ANCHOR;
-    case 3:   return HeadquartersState.BUILD_CARRIER;
+    case 1:   return HeadquartersState.BUILD_ANCHOR;
+    case 2:   return HeadquartersState.BUILD_CARRIER;
     default: throw new RuntimeException("should not be here");
     }
   }

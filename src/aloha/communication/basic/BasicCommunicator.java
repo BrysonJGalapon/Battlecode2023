@@ -160,9 +160,9 @@ public class BasicCommunicator implements Communicator {
     if (hqIndex == -1) {
       hqIndex = getClosestHQIndex(rc);
 
-      // If we couldn't find any HQs, return no messages
+      // We should always find an HQ, since they cannot be destroyed
       if (hqIndex == -1) {
-        return new LinkedList<>();
+        throw new RuntimeException("should not be here");
       }
     }
 
@@ -186,11 +186,6 @@ public class BasicCommunicator implements Communicator {
       }
 
       Message message = Decoding.hqStateMessage(encoding);
-
-      // If the HQ is dead, ignore it
-      if (message.hqState == HeadquartersState.DEAD) {
-        continue;
-      }
 
       // If the distance to this HQ is shorter than any one we've seen, set the hqIndex to it
       int distance = myLoc.distanceSquaredTo(message.loc);

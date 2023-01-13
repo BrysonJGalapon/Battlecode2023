@@ -66,9 +66,8 @@ public class Encoding {
 
   public static int of(HeadquartersState hqState) {
     switch(hqState) {
-    case DEAD:                return 1;
-    case BUILD_ANCHOR:        return 2;
-    case BUILD_CARRIER:       return 3;
+    case BUILD_ANCHOR:        return 1;
+    case BUILD_CARRIER:       return 2;
     default: throw new RuntimeException("should not be here");
     }
   }
