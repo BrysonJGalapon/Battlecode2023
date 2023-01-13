@@ -35,6 +35,7 @@ public class Carrier {
   }
 
   private static void runCollectResource(RobotController rc) throws GameActionException {
+    rc.setIndicatorString("collecting resources");
     MapLocation myLocation = rc.getLocation();
 
     // Identify an HQ.
@@ -47,6 +48,8 @@ public class Carrier {
       // TODO more intelligently decide which resource type to collect
       resourceType = ResourceType.ADAMANTIUM;
     }
+
+    rc.setIndicatorString("collecting resources: " + resourceType);
 
     // If we don't already have a resource location to path to, try to identify one
     if (dst == null) {
@@ -93,7 +96,7 @@ public class Carrier {
     }
 
     // If we're not close enough to collect resources from the well, path closer to it
-    Optional<Direction> dir = fuzzyPathFinder.findPath(rc.getLocation(), hqLoc, rc);
+    Optional<Direction> dir = fuzzyPathFinder.findPath(rc.getLocation(), dst, rc);
     if (dir.isPresent() && rc.canMove(dir.get())) {
       rc.move(dir.get());
       return;
@@ -101,6 +104,7 @@ public class Carrier {
   }
 
   private static void runDepositResource(RobotController rc) throws GameActionException {
+    rc.setIndicatorString("depositing resources");
     // Identify an HQ.
     if (hqLoc == null) {
       hqLoc = getHQLoc(rc);
