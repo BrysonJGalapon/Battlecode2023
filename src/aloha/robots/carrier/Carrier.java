@@ -60,7 +60,8 @@ public class Carrier {
         // If we see a resource well, try to communicate the well info even if
         //  we don't collect from it, since other robots might want to collect from
         //  it.
-        communicateWellInfo(wellInfo, rc);
+        boolean success = communicateWellInfo(wellInfo, rc);
+        // TODO cache unsuccessful communications for retry later
       }
 
       // No wells of our resourceType in sight. If we received some well messages for our resourceType, path to the closest one
@@ -280,7 +281,7 @@ public class Carrier {
     // TODO
   }
 
-  private static void communicateWellInfo(WellInfo wellInfo, RobotController rc) throws GameActionException {
+  private static boolean communicateWellInfo(WellInfo wellInfo, RobotController rc) throws GameActionException {
     // TODO
   }
 
