@@ -113,6 +113,28 @@ public class Carrier {
       }
     }
 
+    // If we're collecting from our well and we see an enemy within range, attack it
+    if (myLocation.distanceSquaredTo(dst) <= 2 && rc.getResourceAmount(resourceType) >= 20) {
+      RobotInfo[] enemies = rc.senseNearbyRobots(RobotType.CARRIER.actionRadiusSquared, OPPONENT);
+      RobotInfo enemyWithLowestHealth = null;
+      for (RobotInfo enemy : enemies) {
+        // Do not attack HQs, since they cannot be destroyed.
+        if (enemy.getType() == RobotType.HEADQUARTERS) {
+          continue;
+        }
+
+        if (enemyWithLowestHealth == null || enemy.getHealth() < enemyWithLowestHealth.getHealth()) {
+          enemyWithLowestHealth = enemy;
+        }
+      }
+
+      // Try to attack enemy with lowest health
+      if (enemyWithLowestHealth != null && rc.canAttack(enemyWithLowestHealth.location)) {
+        rc.attack(enemyWithLowestHealth.location);
+        return;
+      }
+    }
+
     // If we've collected enough of our resource, go to DEPOSIT_RESOURCE state.
     if (rc.getResourceAmount(resourceType) >= 39) {
       state = CarrierState.DEPOSIT_RESOURCE;
