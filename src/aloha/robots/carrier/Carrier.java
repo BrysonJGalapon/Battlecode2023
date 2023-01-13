@@ -12,6 +12,7 @@ public class Carrier {
   private static final Communicator communicator = Communicator.newCommunicator();
   private static final PathFinder randomPathFinder = new RandomPathFinder();
   private static final PathFinder fuzzyPathFinder = new FuzzyPathFinder();
+  private static final Random rng = new Random(123298);
 
   // hqLoc is a cached data field of the HQ this robot belongs to.
   private static MapLocation hqLoc;
@@ -43,10 +44,13 @@ public class Carrier {
       hqLoc = getHQLoc(rc);
     }
 
-    // Always collect Ad.
+    // Do a coin-flip to determine which resource type to collect
     if (resourceType == null) {
-      // TODO more intelligently decide which resource type to collect
-      resourceType = ResourceType.ADAMANTIUM;
+      if (rng.nextBoolean()) {
+        resourceType = ResourceType.ADAMANTIUM;
+      } else {
+        resourceType = ResourceType.MANA;
+      }
     }
 
     rc.setIndicatorString("collecting resources: " + resourceType);
@@ -125,10 +129,10 @@ public class Carrier {
       }
 
       state = CarrierState.COLLECT_RESOURCE;
-      // TODO reset resourceType and dst to collect different resourceTypes based
+      // Reset resourceType and dst to collect different resourceTypes based
       //  on the next trip.
-      // No need to reset dst, since resource wells cannot be destroyed or created,
-      //  and the only way we get into DEPOSIT_RESOURCE state is from COLLECT_RESOURCE state.
+      resourceType = null;
+      dst = null;
       return;
     }
 
@@ -159,7 +163,9 @@ public class Carrier {
       RobotInfo hqInfo = rc.senseRobotAtLocation(hqLoc);
       if (hqInfo.getNumAnchors(Anchor.STANDARD) == 0) {
         state = CarrierState.COLLECT_RESOURCE;
-        // Reset state used during COLLECT_RESOURCE state
+        // Reset resourceType and dst to collect different resourceTypes based
+        //  on the next trip.
+        resourceType = null;
         dst = null;
         return;
       }
