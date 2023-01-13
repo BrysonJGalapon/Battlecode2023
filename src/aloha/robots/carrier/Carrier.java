@@ -119,11 +119,16 @@ public class Carrier {
       }
     }
 
+    // If we've collected enough of our resource, go to DEPOSIT_RESOURCE state.
+    if (rc.getResourceAmount(resourceType) >= 39) {
+      state = CarrierState.DEPOSIT_RESOURCE;
+      return;
+    }
+
     // If we can collect resources from the well (try to collect the maximum amount), do it
     //  and move to the DEPOSIT_RESOURCE state.
     if (rc.canCollectResource(dst, -1)) {
       rc.collectResource(dst, -1);
-      state = CarrierState.DEPOSIT_RESOURCE;
       return;
     }
 
