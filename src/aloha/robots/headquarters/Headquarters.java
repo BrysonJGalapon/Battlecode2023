@@ -3,9 +3,11 @@ package aloha.robots.headquarters;
 import battlecode.common.*;
 import java.util.*;
 import aloha.utils.*;
+import aloha.communication.*;
 
 public class Headquarters {
   private static HeadquartersState state = HeadquartersState.BUILD_ANCHOR;
+  private static final Communicator communicator = Communicator.newCommunicator();
   private static final Random rng = new Random(6147);
 
   private static int buildAnchorCooldown = 0;
@@ -31,6 +33,16 @@ public class Headquarters {
 
   public static void runBuildCarrier(RobotController rc) throws GameActionException {
     rc.setIndicatorString("building carrier");
+
+    // TODO remove
+    if (rc.getRoundNum() > 250) {
+      Message message = Message.builder(MessageType.ENEMY_LOC)
+        .recipient(Entity.CARRIERS)
+        .loc(new MapLocation(14, 14))
+        .build();
+
+      communicator.sendMessage(message, rc);
+    }
 
     // wait for some time before building an anchor again
     if (buildAnchorCooldown == 0) {

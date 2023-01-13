@@ -32,6 +32,8 @@ public strictfp class RobotPlayer {
     static int birthRound = -1;
     static final boolean printBytecode = false;
 
+    public static Team OPPONENT = null;
+
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
      * It is like the main function for your robot. If this method returns, the robot dies!
@@ -54,6 +56,9 @@ public strictfp class RobotPlayer {
 
         // Set the logger's rc
         Log.rc = rc;
+
+        // Set the team variables
+        OPPONENT = rc.getTeam().opponent();
 
         while (true) {
             // This code runs during the entire lifespan of the robot, which is why it is in an infinite
