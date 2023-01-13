@@ -25,7 +25,7 @@ public class Headquarters {
       if (rc.canBuildAnchor(Anchor.STANDARD)) {
           rc.buildAnchor(Anchor.STANDARD);
           state = HeadquartersState.BUILD_CARRIER;
-          buildAnchorCooldown = 10;
+          buildAnchorCooldown = 100;
       }
 
       return;
@@ -33,16 +33,6 @@ public class Headquarters {
 
   public static void runBuildCarrier(RobotController rc) throws GameActionException {
     rc.setIndicatorString("building carrier");
-
-    // TODO remove
-    if (rc.getRoundNum() > 250) {
-      Message message = Message.builder(MessageType.ENEMY_LOC)
-        .recipient(Entity.CARRIERS)
-        .loc(new MapLocation(14, 14))
-        .build();
-
-      communicator.sendMessage(message, rc);
-    }
 
     // wait for some time before building an anchor again
     if (buildAnchorCooldown == 0) {
