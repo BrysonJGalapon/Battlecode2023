@@ -10,7 +10,7 @@ import static aloha.RobotPlayer.OPPONENT;
 public class Carrier {
   private static CarrierState state = CarrierState.COLLECT_RESOURCE;
   private static final Communicator communicator = Communicator.newCommunicator();
-  private static final PathFinder randomPathFinder = new RandomPathFinder();
+  private static final PathFinder explorePathFinder = new ExplorePathFinder();
   private static final PathFinder fuzzyPathFinder = new FuzzyPathFinder();
   private static final Random rng = new Random(123298);
 
@@ -105,7 +105,7 @@ public class Carrier {
 
       // No wells of our resourceType identified. Search for the given resource type.
       if (dst == null) {
-        Optional<Direction> dir = randomPathFinder.findPath(null, null, rc);
+        Optional<Direction> dir = explorePathFinder.findPath(myLocation, null, rc);
         if (dir.isPresent() && rc.canMove(dir.get())) {
           rc.move(dir.get());
         }
@@ -226,6 +226,8 @@ public class Carrier {
   }
 
   private static void runPlaceAnchor(RobotController rc) throws GameActionException {
+    MapLocation myLocation = rc.getLocation();
+
     rc.setIndicatorString("trying to place anchor");
     // find sky islands in view
     if (dst == null) {
@@ -237,9 +239,9 @@ public class Carrier {
       }
     }
 
-    // if no sky islands in view, move randomly and end turn
+    // if no sky islands in view, explore for other islands and end turn
     if (dst == null) {
-      Optional<Direction> dir = randomPathFinder.findPath(null, null, rc);
+      Optional<Direction> dir = explorePathFinder.findPath(myLocation, null, rc);
       if (dir.isPresent() && rc.canMove(dir.get())) {
         rc.move(dir.get());
       }

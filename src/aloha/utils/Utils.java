@@ -31,4 +31,8 @@ public class Utils {
         int pick = getRng().nextInt(arr.length);
         return arr[pick];
     }
+
+    public static Direction getRandomDirection() {
+      return getRandomValueFrom(directions);
+    }
 }
