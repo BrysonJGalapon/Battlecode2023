@@ -35,19 +35,95 @@ public class Carrier {
   }
 
   private static void runCollectResource(RobotController rc) throws GameActionException {
+    MapLocation myLocation = rc.getLocation();
+
     // Identify an HQ.
     if (hqLoc == null) {
       hqLoc = getHQLoc(rc);
     }
 
+    // Always collect Ad.
     if (resourceType == null) {
-      if (rc.getRoundNum() < 800) {
+      // TODO more intelligently decide which resource type to collect
+      resourceType = ResourceType.ADAMANTIUM;
+    }
 
+    // If we don't already have a resource location to path to, try to identify one
+    if (dst == null) {
+      // If we see any wells of our resourceType in sight, path to the closest one
+      WellInfo[] wellInfos = rc.senseNearbyWells();
+      for (WellInfo wellInfo : wellInfos) {
+        if ((wellInfo.getResourceType() == resourceType) && (dst == null || myLocation.distanceSquaredTo(wellInfo.getMapLocation()) < myLocation.distanceSquaredTo(dst))) {
+          dst = wellInfo.getMapLocation();
+        }
+
+        // If we see a resource well, try to communicate the well info even if
+        //  we don't collect from it, since other robots might want to collect from
+        //  it.
+        communicateWellInfo(wellInfo, rc);
       }
+
+      // No wells of our resourceType in sight. If we received some well messages for our resourceType, path to the closest one
+      if (dst == null) {
+        List<Message> messages = communicator.receiveMessages(getMessageTypeOf(resourceType), rc);
+        for (Message message : messages) {
+          if (dst == null || myLocation.distanceSquaredTo(message.loc) < myLocation.distanceSquaredTo(dst)) {
+            dst = message.loc;
+          }
+        }
+      }
+
+      // No wells of our resourceType identified. Search for the given resource type.
+      if (dst == null) {
+        Optional<Direction> dir = randomPathFinder.findPath(null, null, rc);
+        if (dir.isPresent() && rc.canMove(dir.get())) {
+          rc.move(dir.get());
+        }
+        return;
+      }
+    }
+
+    // If we can collect resources from the well (try to collect the maximum amount), do it
+    //  and move to the DEPOSIT_RESOURCE state.
+    if (rc.canCollectResource(dst, -1)) {
+      rc.collectResource(dst, -1);
+      state = CarrierState.DEPOSIT_RESOURCE;
+      return;
+    }
+
+    // If we're not close enough to collect resources from the well, path closer to it
+    Optional<Direction> dir = fuzzyPathFinder.findPath(rc.getLocation(), hqLoc, rc);
+    if (dir.isPresent() && rc.canMove(dir.get())) {
+      rc.move(dir.get());
+      return;
     }
   }
 
   private static void runDepositResource(RobotController rc) throws GameActionException {
+    // Identify an HQ.
+    if (hqLoc == null) {
+      hqLoc = getHQLoc(rc);
+    }
+
+    // Try to deposit resources to the HQ, and move to COLLECT_RESOURCE state.
+    int resourceAmount = rc.getResourceAmount(resourceType);
+    if (rc.canTransferResource(hqLoc, resourceType, resourceAmount)) {
+      rc.transferResource(hqLoc, resourceType, resourceAmount);
+
+      state = CarrierState.COLLECT_RESOURCE;
+      // TODO reset resourceType and dst to collect different resourceTypes based
+      //  on the next trip.
+      // No need to reset dst, since resource wells cannot be destroyed or created,
+      //  and the only way we get into DEPOSIT_RESOURCE state is from COLLECT_RESOURCE state.
+      return;
+    }
+
+    // If we can't yet deposit the resources, move in the direction of the HQ.
+    Optional<Direction> dir = fuzzyPathFinder.findPath(rc.getLocation(), hqLoc, rc);
+    if (dir.isPresent() && rc.canMove(dir.get())) {
+      rc.move(dir.get());
+      return;
+    }
   }
 
   private static void runTakeAnchor(RobotController rc) throws GameActionException {
@@ -64,7 +140,7 @@ public class Carrier {
       return;
     }
 
-    // Try to take an anchor from the HQ.
+    // Try to take an anchor from the HQ, and move to PLACE_ANCHOR state
     rc.setIndicatorString("trying to take an anchor from " + hqLoc);
     if (rc.canTakeAnchor(hqLoc, Anchor.STANDARD)) {
       rc.takeAnchor(hqLoc, Anchor.STANDARD);
@@ -187,6 +263,7 @@ public class Carrier {
 
   // getHQLoc gets the HQ location to associate to this robot.
   private static MapLocation getHQLoc(RobotController rc) throws GameActionException {
+    // Try to find HQs within the current vision
     RobotInfo[] robotInfos = rc.senseNearbyRobots();
     for (RobotInfo robotInfo : robotInfos) {
       if (robotInfo.type == RobotType.HEADQUARTERS) {
@@ -194,11 +271,25 @@ public class Carrier {
       }
     }
 
+    // No HQs within vision. Get HQ locations from messages.
     List<Message> messages = communicator.receiveMessages(MessageType.HQ_STATE, rc);
     return messages.get(0).loc;
   }
 
   private static void runSurvive(RobotController rc) throws GameActionException {
     // TODO
+  }
+
+  private static void communicateWellInfo(WellInfo wellInfo, RobotController rc) throws GameActionException {
+    // TODO
+  }
+
+  private static MessageType getMessageTypeOf(ResourceType resourceType)  {
+    switch(resourceType) {
+      case ADAMANTIUM:  return MessageType.AD_WELL_LOC;
+      case MANA:        return MessageType.MN_WELL_LOC;
+      case ELIXIR:      return MessageType.EX_WELL_LOC;
+      default:          throw new RuntimeException("should not be here");
+    }
   }
 }
