@@ -19,7 +19,6 @@ public class Headquarters {
   }
 
   public static void runBuildAnchor(RobotController rc) throws GameActionException {
-      rc.setIndicatorString("building anchor");
       // build an anchor, then move to BUILD_CARRIER state
       if (rc.canBuildAnchor(Anchor.STANDARD)) {
           rc.buildAnchor(Anchor.STANDARD);
