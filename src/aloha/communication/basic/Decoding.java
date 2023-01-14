@@ -27,6 +27,8 @@ public class Decoding {
     case 4:   return MessageType.AD_WELL_LOC;
     case 5:   return MessageType.MN_WELL_LOC;
     case 6:   return MessageType.EX_WELL_LOC;
+    case 7:   return MessageType.NO_ENEMY_ISLAND_LOC;
+    case 8:   return MessageType.ENEMY_ISLAND_LOC;
     default: throw new RuntimeException("should not be here, got: " + encoding);
     }
   }
@@ -48,6 +50,7 @@ public class Decoding {
     switch(encoding) {
     case 1:   return HeadquartersState.BUILD_ANCHOR;
     case 2:   return HeadquartersState.BUILD_CARRIER;
+    case 3:   return HeadquartersState.BUILD_LAUNCHER;
     default: throw new RuntimeException("should not be here");
     }
   }

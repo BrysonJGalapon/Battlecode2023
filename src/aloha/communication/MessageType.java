@@ -17,5 +17,13 @@ public enum MessageType {
   MN_WELL_LOC,
 
   // EX_WELL_LOC messages store a MapLocation of the Ex well
-  EX_WELL_LOC;
+  EX_WELL_LOC,
+
+  // NO_ENEMY_ISLAND_LOC messages store a MapLocation of one of the cells in the sky-island
+  //  owned by us, or not owned by anyone
+  NO_ENEMY_ISLAND_LOC,
+
+  // ENEMY_ISLAND_LOC messages store a MapLocation of one of the cells in the sky-island
+  //  owned by the enemy
+  ENEMY_ISLAND_LOC;
 }

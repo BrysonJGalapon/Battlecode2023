@@ -33,12 +33,14 @@ public class Carrier {
   // uncommunicatedWellInfoMessages contains the set of well info messages we were unable to
   //  communicate, but would like to communicate.
   private static Set<Message> uncommunicatedWellInfoMessages = new HashSet<>();
+  // uncommunicatedWellInfoMessages contains the set of well sky-island messages we were unable to
+  //  communicate, but would like to communicate.
+  private static Set<Message> uncommunicatedSkyIslandMessages = new HashSet<>();
 
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
       case TAKE_ANCHOR:       runTakeAnchor(rc);      break;
       case PLACE_ANCHOR:      runPlaceAnchor(rc);     break;
-      case ATTACK_LOC:        runAttackLoc(rc);       break;
       case COLLECT_RESOURCE:  runCollectResource(rc); break;
       case DEPOSIT_RESOURCE:  runDepositResource(rc); break;
       default:                throw new RuntimeException("should not be here");
@@ -47,7 +49,7 @@ public class Carrier {
     // At the end of our turn, try to communicate all of the messages we were not
     //  able to send before. This is important because the local information we know
     //  about could be valuable to the rest of the robots.
-    tryCommunicateAllUncommunicatedWellInfoMessages(rc);
+    tryCommunicateAllUncommunicatedMessages(rc);
   }
 
   private static void runCollectResource(RobotController rc) throws GameActionException {
@@ -251,19 +253,11 @@ public class Carrier {
     }
 
     rc.setIndicatorLine(rc.getLocation(), hqLoc, 100, 0, 0);
+
     // If we can't yet take the anchor, move in the direction of the HQ.
     Optional<Direction> dir = fuzzyPathFinder.findPath(rc.getLocation(), hqLoc, rc);
     if (dir.isPresent() && rc.canMove(dir.get())) {
       rc.move(dir.get());
-    }
-
-    // If we receive any enemy location messages, go attack that location
-    List<Message> messages = communicator.receiveMessages(MessageType.ENEMY_LOC, rc);
-    if (messages.size() != 0) {
-      Message message = messages.get(0);
-      state = CarrierState.ATTACK_LOC;
-      dst = message.loc;
-      return;
     }
   }
 
@@ -380,6 +374,16 @@ public class Carrier {
     // No HQs within vision. Get HQ locations from messages.
     List<Message> messages = communicator.receiveMessages(MessageType.HQ_STATE, rc);
     return messages.get(0).loc;
+  }
+
+  private static void tryCommunicateAllUncommunicatedMessages(RobotController rc) throws GameActionException {
+    // Try to communicate well info and sky-island messages
+    tryCommunicateAllUncommunicatedWellInfoMessages(rc);
+    tryCommunicateAllUncommunicatedSkyIslandMessages(rc);
+  }
+
+  private static void tryCommunicateAllUncommunicatedSkyIslandMessages(RobotController rc) throws GameActionException {
+    // TODO
   }
 
   private static void tryCommunicateAllUncommunicatedWellInfoMessages(RobotController rc) throws GameActionException {

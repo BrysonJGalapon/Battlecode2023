@@ -51,6 +51,8 @@ public class Encoding {
     case AD_WELL_LOC:         return 4;
     case MN_WELL_LOC:         return 5;
     case EX_WELL_LOC:         return 6;
+    case NO_ENEMY_ISLAND_LOC: return 7;
+    case ENEMY_ISLAND_LOC:    return 8;
     default: throw new RuntimeException("should not be here");
     }
   }
@@ -68,6 +70,7 @@ public class Encoding {
     switch(hqState) {
     case BUILD_ANCHOR:        return 1;
     case BUILD_CARRIER:       return 2;
+    case BUILD_LAUNCHER:      return 3;
     default: throw new RuntimeException("should not be here");
     }
   }
