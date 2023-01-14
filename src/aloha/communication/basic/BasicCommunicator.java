@@ -3,7 +3,6 @@ package aloha.communication.basic;
 import battlecode.common.*;
 import java.util.*;
 import aloha.communication.*;
-
 import aloha.robots.headquarters.HeadquartersState;
 
 public class BasicCommunicator implements Communicator {
@@ -26,14 +25,20 @@ public class BasicCommunicator implements Communicator {
   // hqIndex is a cached index into the shared array of the headquarters this robot belongs to.
   private static int hqIndex = -1;
 
-  // numReceivedMessages is a cached number of messages this robot received from the shared array.
+  // numReceivedMessages is a cached number of total messages this robot received from the shared array.
   private static int numReceivedMessages = 0;
+
+  // receivedMessages is a cached list of all messages received during this round.
+  private static List<Message> receivedMessages = null;
+  // receivedMessagesRound is the cached round number when receivedMessages was received.
+  private static int receivedMessagesRound = -1;
 
   @Override
   public boolean sendMessage(Message message, RobotController rc) throws GameActionException {
     switch(message.messageType) {
       case HQ_STATE:    return sendHQStateMessage(message, rc);
       case MN_WELL_LOC: return sendLocationMessage(message, rc);
+      case AD_WELL_LOC: return sendLocationMessage(message, rc);
       case EX_WELL_LOC: return sendLocationMessage(message, rc);
       case ENEMY_LOC:   return sendLocationMessage(message, rc);
       default:          throw new RuntimeException("should not be here");
@@ -42,14 +47,67 @@ public class BasicCommunicator implements Communicator {
 
   @Override
   public List<Message> receiveMessages(MessageType messageType, RobotController rc) throws GameActionException {
-    switch(messageType) {
-      case HQ_STATE:    return receiveHQStateMessages(rc);
-      case AD_WELL_LOC: return receiveLocationMessages(messageType, rc);
-      case MN_WELL_LOC: return receiveLocationMessages(messageType, rc);
-      case EX_WELL_LOC: return receiveLocationMessages(messageType, rc);
-      case ENEMY_LOC:   return receiveLocationMessages(messageType, rc);
-      default:          throw new RuntimeException("should not be here");
+    if (messageType == MessageType.HQ_STATE) {
+      return receiveHQStateMessages(rc);
     }
+
+    receiveAllMessages(rc);
+
+    List<Message> messages = new LinkedList<>();
+    for (Message message : messages) {
+      if (messageType == message.messageType) {
+        messages.add(message);
+      }
+    }
+
+    return messages;
+  }
+
+  private void receiveAllMessages(RobotController rc) throws GameActionException {
+    // If we've already received all messages for this round, do nothing.
+    if (rc.getRoundNum() == receivedMessagesRound) {
+      return;
+    }
+
+    // Get the total number of writes ever made to the given recipient by getting the
+    //  value at the first index of the recipient's range
+    int firstIndex = getFirstIndexOfRange(Entity.of(rc.getType()));
+    int numWrites = rc.readSharedArray(firstIndex);
+
+    receivedMessages = new LinkedList<>();
+
+    // Receive all messages written since the latest message was received. Cap the number of
+    //  received messages to 9, since there will be at most 9 new messages to receive. Read the
+    //  messages in reverse chronological order, but build the message list in chronological order.
+    for (int count = numWrites-1; count >= numReceivedMessages && count >= numWrites-9; count--) {
+      int targetIdx = firstIndex + (count % 9) + 1;
+      int encoding = rc.readSharedArray(targetIdx);
+
+      // Ignore empty messages
+      if (encoding == 0) {
+        continue;
+      }
+
+      // Decode the message based on its message type. Assumes the message type is
+      //  always the right-most bits in the encoding.
+      Message message;
+      switch(Decoding.messageType(encoding & Encoding.MESSAGE_TYPE_ENCODING_MASK)) {
+        case AD_WELL_LOC: message = Decoding.locationMessage(encoding); break;
+        case MN_WELL_LOC: message = Decoding.locationMessage(encoding); break;
+        case EX_WELL_LOC: message = Decoding.locationMessage(encoding); break;
+        case ENEMY_LOC:   message = Decoding.locationMessage(encoding); break;
+        default:          throw new RuntimeException("should not be here");
+      }
+
+      receivedMessages.add(0, message);
+    }
+
+    // It's possible we haven't read as many received messages as was ever written, but
+    //  that only happens when more than 9 messages were written to the range in the last turn.
+    //  Those messages are effectively lost, so we count them here anyway to ensure that
+    //  subsequent invocations of this function will be correct.
+    numReceivedMessages = numWrites;
+    receivedMessagesRound = rc.getRoundNum();
   }
 
   // sendLocationMessage sends messages that only contain a messageType and location

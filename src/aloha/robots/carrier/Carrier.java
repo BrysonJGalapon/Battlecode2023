@@ -23,11 +23,16 @@ public class Carrier {
   //  this robot is collecting or depositing.
   private static ResourceType resourceType;
   // knownManaWells, knownAdmantiniumWells, and knownElixirWells are cached
-  //  fields representing known locations of certain well-types. knownManaWells and knownAdmantiniumWells may be
+  //  fields representing known locations of certain well-types, mapping to a boolean
+  //  describing if the well was discovered via communication or not.
+  //  knownManaWells and knownAdmantiniumWells may be
   //  inaccurate over time, since Mn and Ad wells can be converted to Elixir wells.
-  private static Set<MapLocation> knownManaWells = new HashSet<>();
-  private static Set<MapLocation> knownAdmantiniumWells = new HashSet<>();
-  private static Set<MapLocation> knownElixirWells = new HashSet<>();
+  private static Map<MapLocation, Boolean> knownManaWells = new HashMap<>();
+  private static Map<MapLocation, Boolean> knownAdmantiniumWells = new HashMap<>();
+  private static Map<MapLocation, Boolean> knownElixirWells = new HashMap<>();
+  // uncommunicatedWellInfoMessages contains the set of well info messages we were unable to
+  //  communicate, but would like to communicate.
+  private static Set<Message> uncommunicatedWellInfoMessages = new HashSet<>();
 
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
@@ -36,9 +41,13 @@ public class Carrier {
       case ATTACK_LOC:        runAttackLoc(rc);       break;
       case COLLECT_RESOURCE:  runCollectResource(rc); break;
       case DEPOSIT_RESOURCE:  runDepositResource(rc); break;
-      case SURVIVE:           runSurvive(rc);         break;
       default:                throw new RuntimeException("should not be here");
     }
+
+    // At the end of our turn, try to communicate all of the messages we were not
+    //  able to send before. This is important because the local information we know
+    //  about could be valuable to the rest of the robots.
+    tryCommunicateAllUncommunicatedWellInfoMessages(rc);
   }
 
   private static void runCollectResource(RobotController rc) throws GameActionException {
@@ -64,8 +73,8 @@ public class Carrier {
     // If we don't already have a resource location to path to, try to identify one
     if (dst == null) {
       // If we've cached any Mana or Ad wells, path to the closest one
-      Set<MapLocation> knownWells = getKnownWellsFor(resourceType);
-      for ( MapLocation loc : knownWells) {
+      Map<MapLocation, Boolean> knownWells = getKnownWellsFor(resourceType);
+      for (MapLocation loc: knownWells.keySet()) {
         if (dst == null || myLocation.distanceSquaredTo(loc) < myLocation.distanceSquaredTo(dst)) {
           dst = loc;
         }
@@ -80,13 +89,23 @@ public class Carrier {
           }
 
           // Cache seen well location, for faster lookup next time
-          getKnownWellsFor(wellInfo.getResourceType()).add(wellInfo.getMapLocation());
+          //  value is false because we discovered this well via sight, not by communication.
+          getKnownWellsFor(wellInfo.getResourceType()).put(wellInfo.getMapLocation(), false);
 
           // If we see a resource well, try to communicate the well info even if
           //  we don't collect from it, since other robots might want to collect from
           //  it.
-          boolean success = communicateWellInfo(wellInfo, rc);
-          // TODO cache unsuccessful communications for retry later
+          Message wellInfoMessage = Message.builder(getMessageTypeOf(wellInfo.getResourceType()))
+            .recipient(Entity.CARRIERS)
+            .loc(wellInfo.getMapLocation())
+            .build();
+
+          // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
+          //  add it to a cached set of uncommunicated messages for retry later on.
+          boolean success = communicateWellInfoMessage(wellInfoMessage, rc);
+          if (!success) {
+            uncommunicatedWellInfoMessages.add(wellInfoMessage);
+          }
         }
       }
 
@@ -99,7 +118,8 @@ public class Carrier {
           }
 
           // Cache heard well location, for faster lookup next time
-          knownWells.add(message.loc);
+          //  value is true because we discovered this well via communication.
+          knownWells.put(message.loc, true);
         }
       }
 
@@ -362,13 +382,47 @@ public class Carrier {
     return messages.get(0).loc;
   }
 
-  private static void runSurvive(RobotController rc) throws GameActionException {
-    // TODO
+  private static void tryCommunicateAllUncommunicatedWellInfoMessages(RobotController rc) throws GameActionException {
+    // If we can't communicate at all, do nothing.
+    if (!rc.canWriteSharedArray(0, 0)) {
+      return;
+    }
+
+    // If we don't have any uncommunicated messages, do nothing.
+    if (uncommunicatedWellInfoMessages.size() == 0) {
+      return;
+    }
+
+    // Try to send all of our messages
+    Set<Message> sentMessages = new HashSet<>();
+    for (Message message : uncommunicatedWellInfoMessages) {
+      boolean success = communicateWellInfoMessage(message, rc);
+      if (success) {
+        sentMessages.add(message);
+      }
+    }
+
+    // Remove sent messages from the uncommunicated set
+    for (Message message : sentMessages) {
+      uncommunicatedWellInfoMessages.remove(message);
+    }
   }
 
-  private static boolean communicateWellInfo(WellInfo wellInfo, RobotController rc) throws GameActionException {
-    // TODO
-    return false;
+  private static boolean communicateWellInfoMessage(Message wellInfoMessage, RobotController rc) throws GameActionException {
+    // If a well of this type was already communicated in close proximity to the given well, do not communicate
+    //  this well.
+    Map<MapLocation, Boolean> knownWells = getKnownWellsFor(getResourceTypeOf(wellInfoMessage.messageType));
+    for (Map.Entry<MapLocation, Boolean> entry : knownWells.entrySet()) {
+      MapLocation loc = entry.getKey();
+      boolean isCommunicated = entry.getValue();
+      if (isCommunicated && wellInfoMessage.loc.distanceSquaredTo(loc) <= RobotType.CARRIER.actionRadiusSquared) {
+        // softly return true, to prevent re-communication of this message
+        return true;
+      }
+    }
+
+    // No well was already communicated that's similar to this well. Try to communicate it.
+    return communicator.sendMessage(wellInfoMessage, rc);
   }
 
   private static MessageType getMessageTypeOf(ResourceType resourceType)  {
@@ -380,14 +434,21 @@ public class Carrier {
     }
   }
 
-  private static Set<MapLocation> getKnownWellsFor(ResourceType resourceType) {
-    Set<MapLocation> knownWells;
-    switch(resourceType) {
-      case ADAMANTIUM: knownWells = knownAdmantiniumWells; break;
-      case MANA:       knownWells = knownManaWells;        break;
-      case ELIXIR:     knownWells = knownElixirWells;      break;
-      default: throw new RuntimeException("Should not be here");
+  private static ResourceType getResourceTypeOf(MessageType messageType)  {
+    switch(messageType) {
+      case AD_WELL_LOC:  return ResourceType.ADAMANTIUM;
+      case MN_WELL_LOC:  return ResourceType.MANA;
+      case EX_WELL_LOC:  return ResourceType.ELIXIR;
+      default:           throw new RuntimeException("should not be here");
     }
-    return knownWells;
+  }
+
+  private static Map<MapLocation, Boolean> getKnownWellsFor(ResourceType resourceType) {
+    switch(resourceType) {
+      case ADAMANTIUM:  return knownAdmantiniumWells;
+      case MANA:        return knownManaWells;
+      case ELIXIR:      return knownElixirWells;
+      default:          throw new RuntimeException("Should not be here");
+    }
   }
 }

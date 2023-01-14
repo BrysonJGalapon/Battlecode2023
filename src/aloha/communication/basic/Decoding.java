@@ -71,7 +71,7 @@ public class Decoding {
     // Assume the encoding is in the format
     //    <location bits> | <message type bits>
 
-    // Extract the hq state by extracting the first HQ_STATE_ENCODING_LENGTH bits
+    // Extract the hq state by extracting the first MESSAGE_TYPE_ENCODING_LENGTH bits
     int messageTypeEncoding = encoding & Encoding.MESSAGE_TYPE_ENCODING_MASK;
 
     // Extract the loc state by extracting the next MAPLOCATION_ENCODING_LENGTH bits

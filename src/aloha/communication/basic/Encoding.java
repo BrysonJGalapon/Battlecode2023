@@ -13,22 +13,22 @@ public class Encoding {
   // MESSAGE_TYPE_ENCODING_LENGTH is the number of bits it takes to encode a message type
   public static final int MESSAGE_TYPE_ENCODING_LENGTH = 4;
   // MESSAGE_TYPE_ENCODING_MASK is a mask with the last MESSAGE_TYPE_ENCODING_LENGTH bits set
-  public static final int MESSAGE_TYPE_ENCODING_MASK = 31;
+  public static final int MESSAGE_TYPE_ENCODING_MASK = 15;
 
   // MAPLOCATION_ENCODING_LENGTH is the number of bits it takes to encode a maplocation
   public static final int MAPLOCATION_ENCODING_LENGTH = 12;
   // MAPLOCATION_ENCODING_MASK is a mask with the last MAPLOCATION_ENCODING_LENGTH bits set
-  public static final int MAPLOCATION_ENCODING_MASK = 8191;
+  public static final int MAPLOCATION_ENCODING_MASK = 4095;
 
   // HQ_STATE_ENCODING_LENGTH is the number of bits it takes to encode a headquarters state
   public static final int HQ_STATE_ENCODING_LENGTH = 4;
   // HQ_STATE_ENCODING_MASK is a mask with the last HQ_STATE_ENCODING_LENGTH bits set
-  public static final int HQ_STATE_ENCODING_MASK = 31;
+  public static final int HQ_STATE_ENCODING_MASK = 15;
 
   // COORDINATE_ENCODING_LENGTH is the number of bits it takes to encode an x or y coordinate, which both range from [0, 60).
   public static final int COORDINATE_ENCODING_LENGTH = 6;
   // COORDINATE_ENCODING_MASK is a mask with the last COORDINATE_ENCODING_LENGTH bits set
-  public static final int COORDINATE_ENCODING_MASK = 127;
+  public static final int COORDINATE_ENCODING_MASK = 63;
 
   public static int of(Entity entity) {
     switch(entity) {
