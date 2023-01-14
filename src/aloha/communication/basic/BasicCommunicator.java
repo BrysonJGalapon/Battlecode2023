@@ -10,16 +10,13 @@ public class BasicCommunicator implements Communicator {
   There are 64 indices in the shared array.
 
   Indices 0-3 are for headquarter states.
-  Indices 4-13 are for messages intended for headquarter robots.
-  Indices 14-23 are for messages intended for carrier robots.
-  Indices 24-33 are for messages intended for launcher robots.
-  Indices 34-43 are for messages intended for booster robots.
-  Indices 44-53 are for messages intended for destabilizer robots.
-  Indices 54-63 are for messages intended for amplifier robots.
+  Indices 4-23 are for messages intended for carrier robots.
+  Indices 24-43 are for messages intended for launcher robots.
+  Indices 44-63 are for messages intended for amplifier robots.
 
-  The first index in each of the robot-specific ranges (e.g. 4, 14, 24, etc.) holds
+  The first index in each of the robot-specific ranges (e.g. 4, 24, 44 etc.) holds
     a counter to the total number of writes made to this range ever made. If the
-    counter overlows, it returns to 0.
+    counter overlows (2^16), it returns to 0.
   ***/
 
   // hqIndex is a cached index into the shared array of the headquarters this robot belongs to.
@@ -28,10 +25,10 @@ public class BasicCommunicator implements Communicator {
   // numReceivedMessages is a cached number of total messages this robot received from the shared array.
   private static int numReceivedMessages = 0;
 
-  // receivedMessages is a cached list of all messages received during this round.
-  private static List<Message> receivedMessages = null;
-  // receivedMessagesRound is the cached round number when receivedMessages was received.
-  private static int receivedMessagesRound = -1;
+  // receivedRobotMessages is a cached list of all messages received in the robot's channel during this round.
+  private static List<Message> receivedRobotMessages = null;
+  // receivedRobotMessagesRound is the cached round number when receivedMessages was received.
+  private static int receivedRobotMessagesRound = -1;
 
   @Override
   public boolean sendMessage(Message message, RobotController rc) throws GameActionException {
@@ -47,12 +44,17 @@ public class BasicCommunicator implements Communicator {
 
   @Override
   public List<Message> receiveMessages(MessageType messageType, RobotController rc) throws GameActionException {
-    if (messageType == MessageType.HQ_STATE) {
-      return receiveHQStateMessages(rc);
+    switch(messageType) {
+      case HQ_STATE:              return receiveHQStateMessages(rc);
+      default:                    return receiveRobotMessages(messageType, rc);
     }
+  }
 
-    receiveAllMessages(rc);
+  private List<Message> receiveRobotMessages(MessageType messageType, RobotController rc) throws GameActionException {
+    // Receive all messages for this turn
+    receiveAllRobotMessages(rc);
 
+    // Filter the received messages by the requested message type
     List<Message> messages = new LinkedList<>();
     for (Message message : messages) {
       if (messageType == message.messageType) {
@@ -63,24 +65,25 @@ public class BasicCommunicator implements Communicator {
     return messages;
   }
 
-  private void receiveAllMessages(RobotController rc) throws GameActionException {
+  private void receiveAllRobotMessages(RobotController rc) throws GameActionException {
     // If we've already received all messages for this round, do nothing.
-    if (rc.getRoundNum() == receivedMessagesRound) {
+    if (rc.getRoundNum() == receivedRobotMessagesRound) {
       return;
     }
 
     // Get the total number of writes ever made to the given recipient by getting the
     //  value at the first index of the recipient's range
     int firstIndex = getFirstIndexOfRange(Entity.of(rc.getType()));
+    int lengthOfRange = getLengthOfRange(Entity.of(rc.getType()));
     int numWrites = rc.readSharedArray(firstIndex);
 
-    receivedMessages = new LinkedList<>();
+    receivedRobotMessages = new LinkedList<>();
 
     // Receive all messages written since the latest message was received. Cap the number of
-    //  received messages to 9, since there will be at most 9 new messages to receive. Read the
+    //  received messages to the length of the range, since there will be at most `length of range` new messages to receive. Read the
     //  messages in reverse chronological order, but build the message list in chronological order.
-    for (int count = numWrites-1; count >= numReceivedMessages && count >= numWrites-9; count--) {
-      int targetIdx = firstIndex + (count % 9) + 1;
+    for (int count = numWrites-1; count >= numReceivedMessages && count >= numWrites-lengthOfRange; count--) {
+      int targetIdx = firstIndex + (count % lengthOfRange) + 1;
       int encoding = rc.readSharedArray(targetIdx);
 
       // Ignore empty messages
@@ -99,15 +102,15 @@ public class BasicCommunicator implements Communicator {
         default:          throw new RuntimeException("should not be here");
       }
 
-      receivedMessages.add(0, message);
+      receivedRobotMessages.add(0, message);
     }
 
     // It's possible we haven't read as many received messages as was ever written, but
-    //  that only happens when more than 9 messages were written to the range in the last turn.
+    //  that only happens when more than `length of range` messages were written to the range in the last turn.
     //  Those messages are effectively lost, so we count them here anyway to ensure that
     //  subsequent invocations of this function will be correct.
     numReceivedMessages = numWrites;
-    receivedMessagesRound = rc.getRoundNum();
+    receivedRobotMessagesRound = rc.getRoundNum();
   }
 
   // sendLocationMessage sends messages that only contain a messageType and location
@@ -115,10 +118,11 @@ public class BasicCommunicator implements Communicator {
     // Get the total number of writes ever made to the given recipient by getting the
     //  value at the first index of the recipient's range
     int firstIndex = getFirstIndexOfRange(message.recipient);
+    int lengthOfRange = getLengthOfRange(Entity.of(rc.getType()));
     int numWrites = rc.readSharedArray(firstIndex);
 
-    // Use the total number of writes to point to one of the 9 available indices
-    int targetIdx = firstIndex + (numWrites % 9) + 1;
+    // Use the total number of writes to point to one of the `length of range` available indices
+    int targetIdx = firstIndex + (numWrites % lengthOfRange) + 1;
 
     // If we can't write to the shared array, return false
     int encoding = Encoding.ofLocationMessage(message);
@@ -133,40 +137,6 @@ public class BasicCommunicator implements Communicator {
     rc.writeSharedArray(firstIndex, numWrites+1);
 
     return true;
-  }
-
-  // receiveLocationMessages receives messages that only contain a messageType and location
-  private List<Message> receiveLocationMessages(MessageType messageType, RobotController rc) throws GameActionException {
-    // Get the total number of writes ever made to the given recipient by getting the
-    //  value at the first index of the recipient's range
-    int firstIndex = getFirstIndexOfRange(Entity.of(rc.getType()));
-    int numWrites = rc.readSharedArray(firstIndex);
-
-    List<Message> messages = new LinkedList<>();
-
-    // Receive all messages written since the latest message was received. Cap the number of
-    //  received messages to 9, since there will be at most 9 new messages to receive. Read the
-    //  messages in reverse chronological order, but build the message list in chronological order.
-    for (int count = numWrites-1; count >= numReceivedMessages && count >= numWrites-9; count--) {
-      int targetIdx = firstIndex + (count % 9) + 1;
-      int encoding = rc.readSharedArray(targetIdx);
-
-      // Ignore empty messages
-      if (encoding == 0) {
-        continue;
-      }
-
-      Message message = Decoding.locationMessage(encoding);
-      messages.add(0, message);
-    }
-
-    // It's possible we haven't read as many received messages as was ever written, but
-    //  that only happens when more than 9 messages were written to the range in the last turn.
-    //  Those messages are effectively lost, so we count them here anyway to ensure that
-    //  subsequent invocations of this function will be correct.
-    numReceivedMessages = numWrites;
-
-    return messages;
   }
 
   // sendHQStateMessage writes the given headquarter's state and location to the shared array
@@ -204,12 +174,20 @@ public class BasicCommunicator implements Communicator {
 
   private int getFirstIndexOfRange(Entity entity) {
     switch(entity) {
-      case HEADQUARTERS:        return 4;
-      case CARRIERS:            return 14;
+      case CARRIERS:            return 4;
       case LAUNCHERS:           return 24;
-      case BOOSTERS:            return 34;
-      case DESTABILIZERS:       return 44;
-      case AMPLIFIERS:          return 54;
+      case AMPLIFIERS:          return 44;
+      default: throw new RuntimeException("should not be here");
+    }
+  }
+
+  // getLengthOfRange gets the length of the range for each entity, not
+  //  including the first index (which contains count information)
+  private int getLengthOfRange(Entity entity) {
+    switch(entity) {
+      case CARRIERS:            return 19;
+      case LAUNCHERS:           return 19;
+      case AMPLIFIERS:          return 19;
       default: throw new RuntimeException("should not be here");
     }
   }
