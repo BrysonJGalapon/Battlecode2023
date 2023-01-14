@@ -2,30 +2,39 @@ package aloha.robots.launcher;
 
 import battlecode.common.*;
 import java.util.*;
+import aloha.pathing.*;
 import aloha.utils.Utils;
 
 public class Launcher {
-  static final Random rng = new Random(6147);
+  private static final PathFinder fuzzyPathFinder = new FuzzyPathFinder();
+  private static final PathFinder explorePathFinder = new ExplorePathFinder();
 
   public static void run(RobotController rc) throws GameActionException {
-      // Try to attack someone
-        int radius = rc.getType().actionRadiusSquared;
-        Team opponent = rc.getTeam().opponent();
-        RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
-        if (enemies.length >= 0) {
-            // MapLocation toAttack = enemies[0].location;
-            MapLocation toAttack = rc.getLocation().add(Direction.EAST);
+    MapLocation myLocation = rc.getLocation();
+    // Try to attack someone
+    int radius = rc.getType().actionRadiusSquared;
+    Team opponent = rc.getTeam().opponent();
+    RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
+    if (enemies.length > 0) {
+      MapLocation toAttack = enemies[0].location;
 
-            if (rc.canAttack(toAttack)) {
-                rc.setIndicatorString("Attacking");
-                rc.attack(toAttack);
-            }
-        }
+      if (rc.canAttack(toAttack)) {
+          rc.setIndicatorString("Attacking");
+          rc.attack(toAttack);
+      }
 
-        // Also try to move randomly.
-        Direction dir = Utils.directions[rng.nextInt(Utils.directions.length)];
-        if (rc.canMove(dir)) {
-            rc.move(dir);
-        }
+      // Try to move towards the enemy.
+      Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, enemies[0].location, rc);
+      if (dir.isPresent() && rc.canMove(dir.get())) {
+        rc.move(dir.get());
+        return;
+      }
+    }
+
+    // No enemies found. Explore.
+    Optional<Direction> dir = explorePathFinder.findPath(myLocation, null, rc);
+    if (dir.isPresent() && rc.canMove(dir.get())) {
+      rc.move(dir.get());
+    }
   }
 }
