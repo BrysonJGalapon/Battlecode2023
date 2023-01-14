@@ -7,10 +7,10 @@ import friday.robots.headquarters.HeadquartersState;
 public class Message {
   // metadata fields (required)
   public final MessageType messageType;
-  public final Entity recipient;
 
   // data fields (optional)
   public final MapLocation loc;
+  public final Entity recipient;
   public final HeadquartersState hqState;
 
   private Message(MessageType messageType, Entity recipient, MapLocation loc, HeadquartersState hqState) {
@@ -53,5 +53,44 @@ public class Message {
     public Message build() {
       return new Message(messageType, recipient, loc, hqState);
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+
+    if (!(o instanceof Message)) {
+      return false;
+    }
+
+    // this.messageType = messageType;
+    // this.recipient = recipient;
+    // this.loc = loc;
+    // this.hqState = hqState;
+
+    Message other = (Message) o;
+    return this.messageType == other.messageType &&
+      this.recipient == other.recipient &&
+      this.loc.equals(other.loc) && this.hqState == other.hqState;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = 17;
+
+    result = 31 * result + this.messageType.hashCode();
+    if (this.recipient != null) {
+      result = 31 * result + this.recipient.hashCode();
+    }
+    if (this.loc != null) {
+      result = 31 * result + this.loc.hashCode();
+    }
+    if (this.hqState != null) {
+      result = 31 * result + this.hqState.hashCode();
+    }
+
+    return result;
   }
 }

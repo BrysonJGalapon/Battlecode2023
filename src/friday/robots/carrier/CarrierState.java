@@ -7,9 +7,6 @@ public enum CarrierState {
   // PLACE_ANCHOR tries to place an anchor on a sky-island
   PLACE_ANCHOR,
 
-  // ATTACK_LOC tries to attack a location
-  ATTACK_LOC,
-
   // COLLECT_RESOURCE tries to collect a resource from a well
   COLLECT_RESOURCE,
 

@@ -33,8 +33,10 @@ public class ExplorePathFinder implements PathFinder {
 
         boredom += 1;
 
+        MapLocation newLocation = src.add(direction);
+
         // reflect off the edge of the map
-        if (!rc.onTheMap(src.add(direction))) {
+        if (!rc.onTheMap(newLocation)) {
             Direction newDirection;
             switch (rng.nextInt(2)) {
                 case 0:
@@ -50,6 +52,28 @@ public class ExplorePathFinder implements PathFinder {
                     }
                     break;
                 default: throw new RuntimeException("Should not be here");
+            }
+
+            direction = newDirection;
+        }
+
+        // bumped into another robot or impassable square, try to dodge
+        if (rc.onTheMap(newLocation) && (!rc.sensePassability(newLocation) || rc.senseRobotAtLocation(newLocation) != null)) {
+          Direction newDirection;
+          switch (rng.nextInt(2)) {
+              case 0:
+                  newDirection = direction.rotateLeft();
+                  if (!rc.onTheMap(src.add(newDirection))) {
+                      newDirection = direction.rotateRight().rotateRight();
+                  }
+                  break;
+              case 1:
+                  newDirection = direction.rotateRight();
+                  if (!rc.onTheMap(src.add(newDirection))) {
+                      newDirection = direction.rotateLeft().rotateLeft();
+                  }
+                  break;
+              default: throw new RuntimeException("Should not be here");
             }
 
             direction = newDirection;

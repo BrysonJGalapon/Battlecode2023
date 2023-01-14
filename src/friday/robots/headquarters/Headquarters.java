@@ -6,7 +6,7 @@ import friday.utils.*;
 import friday.communication.*;
 
 public class Headquarters {
-  private static HeadquartersState state = HeadquartersState.BUILD_ANCHOR;
+  private static HeadquartersState state = HeadquartersState.BUILD_CARRIER;
   private static final Communicator communicator = Communicator.newCommunicator();
   private static final Random rng = new Random(6147);
 
@@ -14,8 +14,9 @@ public class Headquarters {
 
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
-      case BUILD_ANCHOR:   runBuildAnchor(rc);   break;
+      case BUILD_ANCHOR:   runBuildAnchor(rc);    break;
       case BUILD_CARRIER:  runBuildCarrier(rc);   break;
+      case BUILD_LAUNCHER: runBuildLauncher(rc);  break;
       default:      throw new RuntimeException("should not be here");
     }
   }
@@ -48,11 +49,37 @@ public class Headquarters {
       buildAnchorCooldown -= 1;
     }
 
-    // no carriers next to us, try to build some carriers
+    // Try to build some carriers
     Direction dir = Utils.directions[rng.nextInt(Utils.directions.length)];
     MapLocation newLoc = rc.getLocation().add(dir);
     if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
         rc.buildRobot(RobotType.CARRIER, newLoc);
+
+        // If we have enough mana, build launchers
+        if (rc.getResourceAmount(ResourceType.MANA) >= 60) {
+          state = HeadquartersState.BUILD_LAUNCHER;
+          return;
+        }
+
+        return;
+    }
+  }
+
+  public static void runBuildLauncher(RobotController rc) throws GameActionException {
+    rc.setIndicatorString("building launcher");
+
+    // Rry to build some launchers
+    Direction dir = Utils.directions[rng.nextInt(Utils.directions.length)];
+    MapLocation newLoc = rc.getLocation().add(dir);
+    if (rc.canBuildRobot(RobotType.LAUNCHER, newLoc)) {
+        rc.buildRobot(RobotType.LAUNCHER, newLoc);
+
+        // If we have enough admantinium, build carriers
+        if (rc.getResourceAmount(ResourceType.ADAMANTIUM) >= 50) {
+          state = HeadquartersState.BUILD_CARRIER;
+          return;
+        }
+
         return;
     }
   }

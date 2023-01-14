@@ -27,6 +27,8 @@ public class Decoding {
     case 4:   return MessageType.AD_WELL_LOC;
     case 5:   return MessageType.MN_WELL_LOC;
     case 6:   return MessageType.EX_WELL_LOC;
+    case 7:   return MessageType.NO_ENEMY_ISLAND_LOC;
+    case 8:   return MessageType.ENEMY_ISLAND_LOC;
     default: throw new RuntimeException("should not be here, got: " + encoding);
     }
   }
@@ -48,6 +50,7 @@ public class Decoding {
     switch(encoding) {
     case 1:   return HeadquartersState.BUILD_ANCHOR;
     case 2:   return HeadquartersState.BUILD_CARRIER;
+    case 3:   return HeadquartersState.BUILD_LAUNCHER;
     default: throw new RuntimeException("should not be here");
     }
   }
@@ -71,7 +74,7 @@ public class Decoding {
     // Assume the encoding is in the format
     //    <location bits> | <message type bits>
 
-    // Extract the hq state by extracting the first HQ_STATE_ENCODING_LENGTH bits
+    // Extract the hq state by extracting the first MESSAGE_TYPE_ENCODING_LENGTH bits
     int messageTypeEncoding = encoding & Encoding.MESSAGE_TYPE_ENCODING_MASK;
 
     // Extract the loc state by extracting the next MAPLOCATION_ENCODING_LENGTH bits
