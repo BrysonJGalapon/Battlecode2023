@@ -4,6 +4,8 @@ import battlecode.common.*;
 import java.util.*;
 import aloha.utils.*;
 import aloha.communication.*;
+import static aloha.RobotPlayer.MY_TEAM;
+import static aloha.RobotPlayer.OPPONENT;
 
 public class Headquarters {
   private static HeadquartersState state = HeadquartersState.BUILD_CARRIER;
@@ -11,6 +13,7 @@ public class Headquarters {
   private static final Random rng = Utils.getRng();
 
   private static int buildAnchorCooldown = 0;
+  private static int consectiveTurnsWithoutCarriers = 0;
 
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
@@ -30,25 +33,46 @@ public class Headquarters {
   }
 
   public static void runBuildAmplifier(RobotController rc) throws GameActionException {
-      // build an anchor, then move to BUILD_CARRIER state
-      if (rc.canBuildAnchor(Anchor.STANDARD)) {
-          rc.buildAnchor(Anchor.STANDARD);
-          state = HeadquartersState.BUILD_CARRIER;
-          buildAnchorCooldown = 100;
-      }
+    rc.setIndicatorString("building amplifier");
+    // build an anchor, then move to BUILD_CARRIER state
+    if (rc.canBuildAnchor(Anchor.STANDARD)) {
+        rc.buildAnchor(Anchor.STANDARD);
+        state = HeadquartersState.BUILD_CARRIER;
+        buildAnchorCooldown = 100;
+    }
 
-      return;
+    return;
   }
 
   public static void runBuildAnchor(RobotController rc) throws GameActionException {
-      // build an anchor, then move to BUILD_CARRIER state
-      if (rc.canBuildAnchor(Anchor.STANDARD)) {
-          rc.buildAnchor(Anchor.STANDARD);
-          state = HeadquartersState.BUILD_CARRIER;
-          buildAnchorCooldown = 100;
+    rc.setIndicatorString("building anchor");
+    // If we haven't seen a carrier for a while, go to build carrier state
+    RobotInfo[] robotInfos = rc.senseNearbyRobots(2, MY_TEAM);
+    boolean isCarrierNextToUs = false;
+    for (RobotInfo robotInfo : robotInfos) {
+      if (robotInfo.type == RobotType.CARRIER) {
+        isCarrierNextToUs = true;
+        break;
       }
-
+    }
+    if (!isCarrierNextToUs) {
+      consectiveTurnsWithoutCarriers++;
+    } else {
+      consectiveTurnsWithoutCarriers = 0;
+    }
+    if (consectiveTurnsWithoutCarriers >= 20) {
+      state = HeadquartersState.BUILD_CARRIER;
       return;
+    }
+
+    // build an anchor, then move to BUILD_CARRIER state
+    if (rc.canBuildAnchor(Anchor.STANDARD)) {
+        rc.buildAnchor(Anchor.STANDARD);
+        state = HeadquartersState.BUILD_CARRIER;
+        buildAnchorCooldown = 100;
+    }
+
+    return;
   }
 
   public static void runBuildCarrier(RobotController rc) throws GameActionException {
@@ -57,7 +81,7 @@ public class Headquarters {
     // wait for some time before building an anchor again
     if (buildAnchorCooldown == 0) {
       // if there are carriers next to us after cooling down, we assume they are waiting for an anchor. Move to BUILD_ANCHOR state.
-      RobotInfo[] robotInfos = rc.senseNearbyRobots(2);
+      RobotInfo[] robotInfos = rc.senseNearbyRobots(2, MY_TEAM);
       for (RobotInfo robotInfo : robotInfos) {
         if (robotInfo.type == RobotType.CARRIER) {
           state = HeadquartersState.BUILD_ANCHOR;

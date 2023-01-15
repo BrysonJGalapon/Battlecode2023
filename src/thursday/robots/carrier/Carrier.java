@@ -54,7 +54,7 @@ public class Carrier {
     switch(state) {
       case TAKE_ANCHOR:       runTakeAnchor(rc);      senseLocalSkyIslands(null, rc); break;
       case PLACE_ANCHOR:      runPlaceAnchor(rc);     break;
-      case COLLECT_RESOURCE:  runCollectResource(rc); senseLocalSkyIslands(null, rc); break;
+      case COLLECT_RESOURCE:  runCollectResource(rc); break;
       case DEPOSIT_RESOURCE:  runDepositResource(rc); senseLocalSkyIslands(null, rc); break;
       default:                throw new RuntimeException("should not be here");
     }
