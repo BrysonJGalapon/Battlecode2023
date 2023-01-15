@@ -14,6 +14,6 @@ public class Log {
       return;
     }
 
-    System.out.println(string);
+    println(string);
   }
 }

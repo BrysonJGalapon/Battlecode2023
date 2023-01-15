@@ -4,6 +4,7 @@ import battlecode.common.*;
 import java.util.*;
 import aloha.communication.*;
 import aloha.robots.headquarters.HeadquartersState;
+import aloha.utils.*;
 
 public class BasicCommunicator implements Communicator {
   /***
@@ -32,17 +33,24 @@ public class BasicCommunicator implements Communicator {
 
   @Override
   public boolean sendMessage(Message message, RobotController rc) throws GameActionException {
+    boolean success;
     switch(message.messageType) {
-      case HQ_STATE:            return sendHQStateMessage(message, rc);
-      case MN_WELL_LOC:         return sendLocationMessage(message, rc);
-      case AD_WELL_LOC:         return sendLocationMessage(message, rc);
-      case EX_WELL_LOC:         return sendLocationMessage(message, rc);
-      case ENEMY_LOC:           return sendLocationMessage(message, rc);
-      case FRIENDLY_ISLAND_LOC: return sendLocationMessage(message, rc);
-      case ENEMY_ISLAND_LOC:    return sendLocationMessage(message, rc);
-      case NEUTRAL_ISLAND_LOC:  return sendLocationMessage(message, rc);
+      case HQ_STATE:            success = sendHQStateMessage(message, rc);  break;
+      case MN_WELL_LOC:         success = sendLocationMessage(message, rc); break;
+      case AD_WELL_LOC:         success = sendLocationMessage(message, rc); break;
+      case EX_WELL_LOC:         success = sendLocationMessage(message, rc); break;
+      case ENEMY_LOC:           success = sendLocationMessage(message, rc); break;
+      case FRIENDLY_ISLAND_LOC: success = sendLocationMessage(message, rc); break;
+      case ENEMY_ISLAND_LOC:    success = sendLocationMessage(message, rc); break;
+      case NEUTRAL_ISLAND_LOC:  success = sendLocationMessage(message, rc); break;
       default:          throw new RuntimeException("should not be here");
     }
+
+    if (success) {
+      Log.println("Successfully sent " + message.messageType + " loc " + message.loc);
+    }
+
+    return success;
   }
 
   @Override
