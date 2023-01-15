@@ -4,7 +4,7 @@ import battlecode.common.*;
 
 import java.util.*;
 import aloha.pathing.*;
-import aloha.utils.Utils;
+import aloha.utils.*;
 
 public class Launcher {
   private static final PathFinder fuzzyPathFinder = new FuzzyPathFinder();
@@ -32,14 +32,14 @@ public static void run(RobotController rc) throws GameActionException {
             robotController.attack(enemyLocation.get());
         }
 
-        Optional<MapLocation> location = avoidEnemy(robotController);
-        if(location.isPresent()) {
-            Optional<Direction> dir = explorePathFinder.findPath(location.get(), null, robotController);
-            if (dir.isPresent() && robotController.canMove(dir.get())) {
-                robotController.move(dir.get());
-                return;
-            }
-        }
+        // Optional<MapLocation> location = avoidEnemy(robotController);
+        // if(location.isPresent()) {
+        //     Optional<Direction> dir = explorePathFinder.findPath(location.get(), null, robotController);
+        //     if (dir.isPresent() && robotController.canMove(dir.get())) {
+        //         robotController.move(dir.get());
+        //         return;
+        //     }
+        // }
 
         // Flock when there are enemies around
         Optional<MapLocation> flockLocation = computeLocalWeightedFlock(robotController);
@@ -64,7 +64,7 @@ public static void run(RobotController rc) throws GameActionException {
   private static Optional<MapLocation> getWeightedLocation(MapLocation location,RobotInfo[] robotInfos) {
         if(robotInfos.length == 0) {
             return Optional.empty();
-        } 
+        }
 
         int cohesionXPosition = 0;
         int cohesionYPosition = 0;
@@ -101,7 +101,7 @@ public static void run(RobotController rc) throws GameActionException {
 
     MapLocation location = robotController.getLocation();
     MapLocation localWeightTeam = getWeightedLocation(location, actionRadiusTeamInfo).orElse(robotController.getLocation());
-    
+
     RobotInfo[] actionRadiusEnemyInfo = robotController.senseNearbyRobots(actionRadius, team.opponent());
     if(actionRadiusTeamInfo.length < actionRadiusEnemyInfo.length) {
         MapLocation localWeightEnemy = getWeightedLocation(location, actionRadiusEnemyInfo).orElse(location);
@@ -132,9 +132,9 @@ public static void run(RobotController rc) throws GameActionException {
 
       MapLocation location = robotController.getLocation();
       MapLocation localWeightTeam = getWeightedLocation(location, actionRadiusTeamInfo).orElse(robotController.getLocation());
-      
+
       RobotInfo[] actionRadiusEnemyInfo = robotController.senseNearbyRobots(actionRadius, team.opponent());
-      
+
       if(actionRadiusEnemyInfo.length > 0) {
         // distance, robot index
         int[] minDistance = {Integer.MAX_VALUE, 0};
@@ -158,11 +158,11 @@ public static void run(RobotController rc) throws GameActionException {
             //enemy carrier holding anchor go kill TODO
         }
         // If we found a robot with low health hit it even if the distance may not be the minimal distance
-        // This way we can eliminate low health enemies 
+        // This way we can eliminate low health enemies
         if(minHealth[2] * .75 < minDistance[0]) {
               return Optional.of(actionRadiusEnemyInfo[minHealth[1]].getLocation());
         }
-  
+
         return Optional.of(actionRadiusEnemyInfo[minDistance[1]].getLocation());
       }
       return Optional.empty();
