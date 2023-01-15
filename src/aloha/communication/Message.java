@@ -65,11 +65,6 @@ public class Message {
       return false;
     }
 
-    // this.messageType = messageType;
-    // this.recipient = recipient;
-    // this.loc = loc;
-    // this.hqState = hqState;
-
     Message other = (Message) o;
     return this.messageType == other.messageType &&
       this.recipient == other.recipient &&

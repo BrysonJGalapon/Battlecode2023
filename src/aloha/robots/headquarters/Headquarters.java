@@ -8,7 +8,7 @@ import aloha.communication.*;
 public class Headquarters {
   private static HeadquartersState state = HeadquartersState.BUILD_CARRIER;
   private static final Communicator communicator = Communicator.newCommunicator();
-  private static final Random rng = new Random(6147);
+  private static final Random rng = Utils.getRng();
 
   private static int buildAnchorCooldown = 0;
 

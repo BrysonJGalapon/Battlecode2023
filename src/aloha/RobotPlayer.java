@@ -33,6 +33,7 @@ public strictfp class RobotPlayer {
     static final boolean printBytecode = false;
 
     public static Team OPPONENT = null;
+    public static Team MY_TEAM = null;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -58,7 +59,8 @@ public strictfp class RobotPlayer {
         Log.rc = rc;
 
         // Set the team variables
-        OPPONENT = rc.getTeam().opponent();
+        MY_TEAM = rc.getTeam();
+        OPPONENT = MY_TEAM.opponent();
 
         while (true) {
             // This code runs during the entire lifespan of the robot, which is why it is in an infinite
@@ -90,7 +92,7 @@ public strictfp class RobotPlayer {
                 // If enabled, print the amount of bytecode left per round for this robot. This is useful for performance
                 //  analysis and debugging.
                 if (printBytecode) {
-                  Log.println(rc.getType() + " bytecode$" + Clock.getBytecodesLeft());
+                  Log.println(rc.getType() + " bytecode " + rc.getLocation() + " $" + Clock.getBytecodesLeft());
                 }
             } catch (GameActionException e) {
                 // Oh no! It looks like we did something illegal in the Battlecode world. You should

@@ -51,8 +51,9 @@ public class Encoding {
     case AD_WELL_LOC:         return 4;
     case MN_WELL_LOC:         return 5;
     case EX_WELL_LOC:         return 6;
-    case NO_ENEMY_ISLAND_LOC: return 7;
+    case FRIENDLY_ISLAND_LOC: return 7;
     case ENEMY_ISLAND_LOC:    return 8;
+    case NEUTRAL_ISLAND_LOC:  return 9;
     default: throw new RuntimeException("should not be here");
     }
   }

@@ -54,3 +54,6 @@ However, we recommend you make a new bot by copying `examplefuncsplayer` to a ne
   - DESTABILIZER
 
   ```./gradlew run -PteamA=aleamB=silentexamplefuncsplayer -Pmaps=maptestsmall | grep "<ROBOT_TYPE> bytecode" | cut -d"$" -f2 | awk '{ total += $1; count++ } END { print total/count }'```
+
+  ### See minimum bytecode left per robot type
+  ```./gradlew run -PteamA=aloha -PteamB=friday -Pmaps=DefaultMap | grep "CARRIER bytecode" | cut -d"$" -f2 | sort -n | head -1```

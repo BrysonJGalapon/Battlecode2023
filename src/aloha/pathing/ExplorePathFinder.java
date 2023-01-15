@@ -5,7 +5,7 @@ import aloha.utils.Utils;
 import java.util.*;
 
 public class ExplorePathFinder implements PathFinder {
-    private static final Random rng = new Random(5247);
+    private static final Random rng = Utils.getRng();
     private int boredom = 0;
     private Direction direction;
 

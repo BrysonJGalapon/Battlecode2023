@@ -33,11 +33,14 @@ public class BasicCommunicator implements Communicator {
   @Override
   public boolean sendMessage(Message message, RobotController rc) throws GameActionException {
     switch(message.messageType) {
-      case HQ_STATE:    return sendHQStateMessage(message, rc);
-      case MN_WELL_LOC: return sendLocationMessage(message, rc);
-      case AD_WELL_LOC: return sendLocationMessage(message, rc);
-      case EX_WELL_LOC: return sendLocationMessage(message, rc);
-      case ENEMY_LOC:   return sendLocationMessage(message, rc);
+      case HQ_STATE:            return sendHQStateMessage(message, rc);
+      case MN_WELL_LOC:         return sendLocationMessage(message, rc);
+      case AD_WELL_LOC:         return sendLocationMessage(message, rc);
+      case EX_WELL_LOC:         return sendLocationMessage(message, rc);
+      case ENEMY_LOC:           return sendLocationMessage(message, rc);
+      case FRIENDLY_ISLAND_LOC: return sendLocationMessage(message, rc);
+      case ENEMY_ISLAND_LOC:    return sendLocationMessage(message, rc);
+      case NEUTRAL_ISLAND_LOC:  return sendLocationMessage(message, rc);
       default:          throw new RuntimeException("should not be here");
     }
   }
@@ -95,10 +98,13 @@ public class BasicCommunicator implements Communicator {
       //  always the right-most bits in the encoding.
       Message message;
       switch(Decoding.messageType(encoding & Encoding.MESSAGE_TYPE_ENCODING_MASK)) {
-        case AD_WELL_LOC: message = Decoding.locationMessage(encoding); break;
-        case MN_WELL_LOC: message = Decoding.locationMessage(encoding); break;
-        case EX_WELL_LOC: message = Decoding.locationMessage(encoding); break;
-        case ENEMY_LOC:   message = Decoding.locationMessage(encoding); break;
+        case AD_WELL_LOC:           message = Decoding.locationMessage(encoding); break;
+        case MN_WELL_LOC:           message = Decoding.locationMessage(encoding); break;
+        case EX_WELL_LOC:           message = Decoding.locationMessage(encoding); break;
+        case ENEMY_LOC:             message = Decoding.locationMessage(encoding); break;
+        case FRIENDLY_ISLAND_LOC:   message = Decoding.locationMessage(encoding); break;
+        case ENEMY_ISLAND_LOC:      message = Decoding.locationMessage(encoding); break;
+        case NEUTRAL_ISLAND_LOC:    message = Decoding.locationMessage(encoding); break;
         default:          throw new RuntimeException("should not be here");
       }
 
