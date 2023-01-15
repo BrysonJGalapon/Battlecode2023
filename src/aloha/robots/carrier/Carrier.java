@@ -55,7 +55,7 @@ public class Carrier {
     switch(state) {
       case TAKE_ANCHOR:       runTakeAnchor(rc);      senseLocalSkyIslands(null, rc); break;
       case PLACE_ANCHOR:      runPlaceAnchor(rc);     break;
-      case COLLECT_RESOURCE:  runCollectResource(rc); senseLocalSkyIslands(null, rc); break;
+      case COLLECT_RESOURCE:  runCollectResource(rc); break;
       case DEPOSIT_RESOURCE:  runDepositResource(rc); senseLocalSkyIslands(null, rc); break;
       default:                throw new RuntimeException("should not be here");
     }
@@ -76,7 +76,7 @@ public class Carrier {
     }
 
     if (resourceType == null) {
-      Message hqStateMessage = communicator.receiveMessages(MessageType.HQ_STATE, rc).get(0);
+      // Message hqStateMessage = communicator.receiveMessages(MessageType.HQ_STATE, rc).get(0);
       // // Try to collect resource that the HQ needs.
       // if (hqStateMessage.hqState == HeadquartersState.BUILD_CARRIER) {
       //   resourceType = ResourceType.ADAMANTIUM;
@@ -100,6 +100,7 @@ public class Carrier {
 
     // If we don't already have a resource location to path to, try to identify one
     if (dst == null) {
+      rc.setIndicatorString("collecting resources: " + resourceType + " no dst set " + Clock.getBytecodesLeft());
       // If we've cached any Mn, Ad, or Ex wells, path to the closest one
       Map<MapLocation, Boolean> knownWells = getKnownWellsFor(resourceType);
       for (MapLocation loc: knownWells.keySet()) {
@@ -110,6 +111,7 @@ public class Carrier {
 
       // No cached resource locations. If we see any wells of our resourceType in sight, path to the closest one
       if (dst == null) {
+        rc.setIndicatorString("collecting resources: " + resourceType + " no cached resources " + Clock.getBytecodesLeft());
         WellInfo[] wellInfos = rc.senseNearbyWells();
         for (WellInfo wellInfo : wellInfos) {
           if ((wellInfo.getResourceType() == resourceType) && (dst == null || myLocation.distanceSquaredTo(wellInfo.getMapLocation()) < myLocation.distanceSquaredTo(dst))) {
@@ -147,6 +149,7 @@ public class Carrier {
 
       // No wells of our resourceType in sight. If we received some well messages for our resourceType, path to the closest one
       if (dst == null) {
+        rc.setIndicatorString("collecting resources: " + resourceType + " no resources in sight " + Clock.getBytecodesLeft());
         List<Message> messages = communicator.receiveMessages(getMessageTypeOf(resourceType), rc);
         for (Message message : messages) {
           if (dst == null || myLocation.distanceSquaredTo(message.loc) < myLocation.distanceSquaredTo(dst)) {
@@ -161,13 +164,18 @@ public class Carrier {
 
       // No wells of our resourceType identified. Search for the given resource type.
       if (dst == null) {
+        rc.setIndicatorString("collecting resources: " + resourceType + " exploring for resource " + Clock.getBytecodesLeft());
         Optional<Direction> dir = explorePathFinder.findPath(myLocation, null, rc);
+        rc.setIndicatorString("collecting resources: " + resourceType + " found direction "  + dir + " " + Clock.getBytecodesLeft());
         if (dir.isPresent() && rc.canMove(dir.get())) {
           rc.move(dir.get());
         }
+
         return;
       }
     }
+
+    rc.setIndicatorString("collecting resources: " + resourceType + " from " + dst);
 
     // If we're collecting from our well and we see an enemy within range, attack it
     if (myLocation.distanceSquaredTo(dst) <= 2 && rc.getResourceAmount(resourceType) >= 20) {
@@ -530,7 +538,7 @@ public class Carrier {
     Set<Message> sentMessages = new HashSet<>();
     for (Message message : uncommunicatedSkyIslandMessages) {
       // If we're about to run out of bytecode, stop communicating messages
-      if (Clock.getBytecodesLeft() <= 1000) {
+      if (Clock.getBytecodesLeft() <= 1500) {
         break;
       }
 
@@ -561,7 +569,7 @@ public class Carrier {
     Set<Message> sentMessages = new HashSet<>();
     for (Message message : uncommunicatedWellInfoMessages) {
       // If we're about to run out of bytecode, stop communicating messages
-      if (Clock.getBytecodesLeft() <= 1000) {
+      if (Clock.getBytecodesLeft() <= 1500) {
         break;
       }
 

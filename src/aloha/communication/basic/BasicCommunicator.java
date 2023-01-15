@@ -46,7 +46,7 @@ public class BasicCommunicator implements Communicator {
       default:          throw new RuntimeException("should not be here");
     }
 
-    if (success) {
+    if (success && message.messageType != MessageType.HQ_STATE) {
       Log.println("Successfully sent " + message.messageType + " loc " + message.loc);
     }
 

@@ -47,7 +47,7 @@ public class BasicCommunicator implements Communicator {
     }
 
     if (success) {
-      Log.println("Successfully sent " + message.messageType + " loc " + message.loc);
+      // Log.println("Successfully sent " + message.messageType + " loc " + message.loc);
     }
 
     return success;
