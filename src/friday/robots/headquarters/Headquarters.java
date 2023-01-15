@@ -1,9 +1,9 @@
-package aloha.robots.headquarters;
+package friday.robots.headquarters;
 
 import battlecode.common.*;
 import java.util.*;
-import aloha.utils.*;
-import aloha.communication.*;
+import friday.utils.*;
+import friday.communication.*;
 
 public class Headquarters {
   private static HeadquartersState state = HeadquartersState.BUILD_CARRIER;

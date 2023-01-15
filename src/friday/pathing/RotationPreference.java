@@ -1,6 +1,6 @@
-package aloha.pathing;
+package friday.pathing;
 
-import aloha.utils.*;
+import friday.utils.*;
 
 public enum RotationPreference {
     LEFT,

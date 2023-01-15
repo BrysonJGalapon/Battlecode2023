@@ -1,7 +1,7 @@
-package aloha.pathing;
+package friday.pathing;
 
 import battlecode.common.*;
-import aloha.utils.Utils;
+import friday.utils.Utils;
 import java.util.*;
 
 public class ExplorePathFinder implements PathFinder {

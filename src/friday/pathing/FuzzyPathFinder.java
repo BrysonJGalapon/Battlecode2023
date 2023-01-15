@@ -1,11 +1,11 @@
-package aloha.pathing;
+package friday.pathing;
 
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
-import aloha.pathing.WallFollower;
-import aloha.utils.Utils;
+import friday.pathing.WallFollower;
+import friday.utils.Utils;
 
 import java.util.Random;
 import java.util.Deque;

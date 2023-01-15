@@ -1,12 +1,12 @@
-package aloha.robots.carrier;
+package friday.robots.carrier;
 
 import battlecode.common.*;
 import java.util.*;
-import aloha.utils.*;
-import aloha.pathing.*;
-import aloha.communication.*;
-import static aloha.RobotPlayer.OPPONENT;
-import static aloha.RobotPlayer.MY_TEAM;
+import friday.utils.*;
+import friday.pathing.*;
+import friday.communication.*;
+import static friday.RobotPlayer.OPPONENT;
+import static friday.RobotPlayer.MY_TEAM;
 
 public class Carrier {
   private static CarrierState state = CarrierState.COLLECT_RESOURCE;

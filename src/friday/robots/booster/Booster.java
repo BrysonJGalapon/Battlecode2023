@@ -1,4 +1,4 @@
-package aloha.robots.booster;
+package friday.robots.booster;
 
 import battlecode.common.*;
 

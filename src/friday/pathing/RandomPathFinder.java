@@ -1,8 +1,8 @@
-package aloha.pathing;
+package friday.pathing;
 
 import battlecode.common.*;
 import java.util.*;
-import aloha.utils.*;
+import friday.utils.*;
 
 public class RandomPathFinder implements PathFinder {
   private static final Random rng = Utils.getRng();

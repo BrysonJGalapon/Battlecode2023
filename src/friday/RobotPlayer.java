@@ -1,4 +1,4 @@
-package aloha;
+package friday;
 
 import battlecode.common.*;
 
@@ -9,13 +9,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import aloha.robots.amplifier.*;
-import aloha.robots.booster.*;
-import aloha.robots.carrier.*;
-import aloha.robots.destabilizer.*;
-import aloha.robots.headquarters.*;
-import aloha.robots.launcher.*;
-import aloha.utils.Log;
+import friday.robots.amplifier.*;
+import friday.robots.booster.*;
+import friday.robots.carrier.*;
+import friday.robots.destabilizer.*;
+import friday.robots.headquarters.*;
+import friday.robots.launcher.*;
+import friday.utils.Log;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.

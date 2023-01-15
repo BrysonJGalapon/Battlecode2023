@@ -1,4 +1,4 @@
-package aloha.utils;
+package friday.utils;
 
 import battlecode.common.*;
 

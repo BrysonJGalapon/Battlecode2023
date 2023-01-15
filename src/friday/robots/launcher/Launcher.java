@@ -1,10 +1,10 @@
-package aloha.robots.launcher;
+package friday.robots.launcher;
 
 import battlecode.common.*;
 
 import java.util.*;
-import aloha.pathing.*;
-import aloha.utils.Utils;
+import friday.pathing.*;
+import friday.utils.Utils;
 
 public class Launcher {
   private static final PathFinder fuzzyPathFinder = new FuzzyPathFinder();
@@ -19,6 +19,8 @@ public static void run(RobotController rc) throws GameActionException {
         rc.move(dir.get());
     }
   }
+
+  //TODO read communication buffer (flock to a location)
 
   private static void enemyAction(RobotController robotController) throws GameActionException {
     MapLocation myLocation = robotController.getLocation();
@@ -153,6 +155,7 @@ public static void run(RobotController rc) throws GameActionException {
                 minHealth[1] = i;
                 minHealth[2] = distance;
             }
+            //enemy carrier holding anchor go kill TODO
         }
         // If we found a robot with low health hit it even if the distance may not be the minimal distance
         // This way we can eliminate low health enemies 

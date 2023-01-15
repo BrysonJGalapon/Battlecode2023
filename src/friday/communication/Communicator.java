@@ -1,8 +1,8 @@
-package aloha.communication;
+package friday.communication;
 
 import battlecode.common.*;
 import java.util.*;
-import aloha.communication.basic.*;
+import friday.communication.basic.*;
 
 // Communicators can send and receive messages
 public interface Communicator {

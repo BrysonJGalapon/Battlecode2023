@@ -1,4 +1,4 @@
-package aloha.communication;
+package friday.communication;
 
 public enum MessageType {
   // HQ_STATE messages store a MapLocation of the headquarters and a HeadquartersState of the headquarters

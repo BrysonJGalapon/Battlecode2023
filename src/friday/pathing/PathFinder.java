@@ -1,4 +1,4 @@
-package aloha.pathing;
+package friday.pathing;
 
 import battlecode.common.*;
 import java.util.*;

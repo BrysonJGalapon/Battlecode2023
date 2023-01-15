@@ -1,8 +1,8 @@
-package aloha.communication.basic;
+package friday.communication.basic;
 
 import battlecode.common.*;
-import aloha.communication.*;
-import aloha.robots.headquarters.HeadquartersState;
+import friday.communication.*;
+import friday.robots.headquarters.HeadquartersState;
 
 // Decoding decodes the values encoded by Encoding
 public class Decoding {

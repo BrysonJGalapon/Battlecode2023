@@ -1,4 +1,4 @@
-package aloha.utils;
+package friday.utils;
 
 public class Pair<F, S> {
   public final F first;

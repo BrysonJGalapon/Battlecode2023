@@ -1,4 +1,4 @@
-package aloha.robots.launcher;
+package friday.robots.launcher;
 
 public enum LauncherState {
     

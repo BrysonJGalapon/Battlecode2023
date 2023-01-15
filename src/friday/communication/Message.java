@@ -1,7 +1,7 @@
-package aloha.communication;
+package friday.communication;
 
 import battlecode.common.*;
-import aloha.robots.headquarters.HeadquartersState;
+import friday.robots.headquarters.HeadquartersState;
 
 // Message represents a message to a specific entity.
 public class Message {

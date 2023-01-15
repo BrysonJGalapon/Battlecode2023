@@ -1,4 +1,4 @@
-package aloha.robots.carrier;
+package friday.robots.carrier;
 
 public enum CarrierState {
   // TAKE_ANCHOR tries to take an anchor from the HQ

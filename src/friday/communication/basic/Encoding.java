@@ -1,8 +1,8 @@
-package aloha.communication.basic;
+package friday.communication.basic;
 
 import battlecode.common.*;
-import aloha.communication.*;
-import aloha.robots.headquarters.HeadquartersState;
+import friday.communication.*;
+import friday.robots.headquarters.HeadquartersState;
 
 public class Encoding {
   // ENTITY_ENCODING_LENGTH is the number of bits it takes to encode an entity

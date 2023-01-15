@@ -1,9 +1,9 @@
-package aloha.communication.basic;
+package friday.communication.basic;
 
 import battlecode.common.*;
 import java.util.*;
-import aloha.communication.*;
-import aloha.robots.headquarters.HeadquartersState;
+import friday.communication.*;
+import friday.robots.headquarters.HeadquartersState;
 
 public class BasicCommunicator implements Communicator {
   /***
