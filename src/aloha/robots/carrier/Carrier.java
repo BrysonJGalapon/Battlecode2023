@@ -4,6 +4,7 @@ import battlecode.common.*;
 import java.util.*;
 import aloha.utils.*;
 import aloha.pathing.*;
+import aloha.robots.headquarters.HeadquartersState;
 import aloha.communication.*;
 import static aloha.RobotPlayer.OPPONENT;
 import static aloha.RobotPlayer.MY_TEAM;
@@ -74,16 +75,28 @@ public class Carrier {
       hqLoc = getHQLoc(rc);
     }
 
-    // Do a coin-flip to determine which resource type to collect
     if (resourceType == null) {
-      if (rng.nextBoolean()) {
-        resourceType = ResourceType.ADAMANTIUM;
-      } else {
-        resourceType = ResourceType.MANA;
+      Message hqStateMessage = communicator.receiveMessages(MessageType.HQ_STATE, rc).get(0);
+      // // Try to collect resource that the HQ needs.
+      // if (hqStateMessage.hqState == HeadquartersState.BUILD_CARRIER) {
+      //   resourceType = ResourceType.ADAMANTIUM;
+      // } else if (hqStateMessage.hqState == HeadquartersState.BUILD_LAUNCHER) {
+      //   resourceType = ResourceType.MANA;
+      // }
+
+      // Do a coin-flip to determine which resource type to collect
+      if (resourceType == null) {
+        if (rng.nextBoolean()) {
+          resourceType = ResourceType.ADAMANTIUM;
+        } else {
+          resourceType = ResourceType.MANA;
+        }
       }
     }
 
     rc.setIndicatorString("collecting resources: " + resourceType);
+
+    // TODO check that dst is still a location of our resource type, and reset it if necessary
 
     // If we don't already have a resource location to path to, try to identify one
     if (dst == null) {

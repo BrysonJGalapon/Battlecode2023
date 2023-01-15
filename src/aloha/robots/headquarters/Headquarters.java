@@ -20,6 +20,13 @@ public class Headquarters {
       case BUILD_AMPLIFIER: runBuildAmplifier(rc); break;
       default:      throw new RuntimeException("should not be here");
     }
+
+    // at the end of each turn, communicate headquarters state
+    Message message = Message.builder(MessageType.HQ_STATE)
+      .hqState(state)
+      .loc(rc.getLocation())
+      .build();
+    communicator.sendMessage(message, rc);
   }
 
   public static void runBuildAmplifier(RobotController rc) throws GameActionException {
