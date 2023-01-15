@@ -1,4 +1,4 @@
-package friday.utils;
+package aloha.utils;
 
 import java.util.*;
 import battlecode.common.*;

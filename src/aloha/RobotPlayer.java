@@ -30,7 +30,7 @@ public strictfp class RobotPlayer {
      */
     static int turnCount = 0;
     static int birthRound = -1;
-    static final boolean printBytecode = false;
+    static final boolean printBytecode = true;
 
     public static Team OPPONENT = null;
     public static Team MY_TEAM = null;

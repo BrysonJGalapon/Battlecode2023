@@ -1,4 +1,4 @@
-package friday.robots.amplifier;
+package aloha.robots.amplifier;
 
 import battlecode.common.*;
 

@@ -1,4 +1,4 @@
-package friday.communication;
+package aloha.communication;
 
 import battlecode.common.*;
 

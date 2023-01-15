@@ -1,4 +1,4 @@
-package friday.communication;
+package aloha.communication;
 
 public enum MessageType {
   // HQ_STATE messages store a MapLocation of the headquarters and a HeadquartersState of the headquarters
@@ -19,11 +19,12 @@ public enum MessageType {
   // EX_WELL_LOC messages store a MapLocation of the Ex well
   EX_WELL_LOC,
 
-  // NO_ENEMY_ISLAND_LOC messages store a MapLocation of one of the cells in the sky-island
-  //  owned by us, or not owned by anyone
-  NO_ENEMY_ISLAND_LOC,
+  // FRIENDLY_ISLAND_LOC messages store a MapLocation of one of the cells in the sky-island owned by us
+  FRIENDLY_ISLAND_LOC,
 
-  // ENEMY_ISLAND_LOC messages store a MapLocation of one of the cells in the sky-island
-  //  owned by the enemy
+  // NEUTRAL_ISLAND_LOC messages store a MapLocation of one of the cells in the sky-island not owned by anyone
+  NEUTRAL_ISLAND_LOC,
+
+  // ENEMY_ISLAND_LOC messages store a MapLocation of one of the cells in the sky-island owned by the enemy
   ENEMY_ISLAND_LOC;
 }

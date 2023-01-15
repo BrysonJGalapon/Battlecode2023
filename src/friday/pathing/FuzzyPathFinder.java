@@ -1,10 +1,11 @@
-package friday.pathing;
+package aloha.pathing;
 
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
-import friday.pathing.WallFollower;
+import aloha.pathing.WallFollower;
+import aloha.utils.Utils;
 
 import java.util.Random;
 import java.util.Deque;
@@ -15,7 +16,7 @@ public class FuzzyPathFinder extends WallFollower implements PathFinder {
     private static final int IMMOVABLE_OBJECT_COST = 1000;
     private static final int MAX_VISITED_SIZE = 7;
     private final Deque<MapLocation> visited = new LinkedList<>();
-    private static final Random rng = new Random(3820);
+    private static final Random rng = Utils.getRng();
 
     private boolean isLeftDisabled = false;
     private boolean isRightDisabled = false;

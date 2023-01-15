@@ -1,7 +1,7 @@
-package friday.communication;
+package aloha.communication;
 
 import battlecode.common.*;
-import friday.robots.headquarters.HeadquartersState;
+import aloha.robots.headquarters.HeadquartersState;
 
 // Message represents a message to a specific entity.
 public class Message {
@@ -64,11 +64,6 @@ public class Message {
     if (!(o instanceof Message)) {
       return false;
     }
-
-    // this.messageType = messageType;
-    // this.recipient = recipient;
-    // this.loc = loc;
-    // this.hqState = hqState;
 
     Message other = (Message) o;
     return this.messageType == other.messageType &&

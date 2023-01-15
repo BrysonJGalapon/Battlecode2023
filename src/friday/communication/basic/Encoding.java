@@ -1,8 +1,8 @@
-package friday.communication.basic;
+package aloha.communication.basic;
 
 import battlecode.common.*;
-import friday.communication.*;
-import friday.robots.headquarters.HeadquartersState;
+import aloha.communication.*;
+import aloha.robots.headquarters.HeadquartersState;
 
 public class Encoding {
   // ENTITY_ENCODING_LENGTH is the number of bits it takes to encode an entity
@@ -51,8 +51,9 @@ public class Encoding {
     case AD_WELL_LOC:         return 4;
     case MN_WELL_LOC:         return 5;
     case EX_WELL_LOC:         return 6;
-    case NO_ENEMY_ISLAND_LOC: return 7;
+    case FRIENDLY_ISLAND_LOC: return 7;
     case ENEMY_ISLAND_LOC:    return 8;
+    case NEUTRAL_ISLAND_LOC:  return 9;
     default: throw new RuntimeException("should not be here");
     }
   }

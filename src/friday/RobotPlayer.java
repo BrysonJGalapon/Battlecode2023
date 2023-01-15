@@ -1,4 +1,4 @@
-package friday;
+package aloha;
 
 import battlecode.common.*;
 
@@ -9,13 +9,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import friday.robots.amplifier.*;
-import friday.robots.booster.*;
-import friday.robots.carrier.*;
-import friday.robots.destabilizer.*;
-import friday.robots.headquarters.*;
-import friday.robots.launcher.*;
-import friday.utils.Log;
+import aloha.robots.amplifier.*;
+import aloha.robots.booster.*;
+import aloha.robots.carrier.*;
+import aloha.robots.destabilizer.*;
+import aloha.robots.headquarters.*;
+import aloha.robots.launcher.*;
+import aloha.utils.Log;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -30,9 +30,10 @@ public strictfp class RobotPlayer {
      */
     static int turnCount = 0;
     static int birthRound = -1;
-    static final boolean printBytecode = false;
+    static final boolean printBytecode = true;
 
     public static Team OPPONENT = null;
+    public static Team MY_TEAM = null;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -58,7 +59,8 @@ public strictfp class RobotPlayer {
         Log.rc = rc;
 
         // Set the team variables
-        OPPONENT = rc.getTeam().opponent();
+        MY_TEAM = rc.getTeam();
+        OPPONENT = MY_TEAM.opponent();
 
         while (true) {
             // This code runs during the entire lifespan of the robot, which is why it is in an infinite
@@ -90,7 +92,7 @@ public strictfp class RobotPlayer {
                 // If enabled, print the amount of bytecode left per round for this robot. This is useful for performance
                 //  analysis and debugging.
                 if (printBytecode) {
-                  Log.println(rc.getType() + " bytecode$" + Clock.getBytecodesLeft());
+                  Log.println(rc.getType() + " bytecode " + rc.getLocation() + " $" + Clock.getBytecodesLeft());
                 }
             } catch (GameActionException e) {
                 // Oh no! It looks like we did something illegal in the Battlecode world. You should

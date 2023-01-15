@@ -1,4 +1,4 @@
-package friday.robots.destabilizer;
+package aloha.robots.destabilizer;
 
 import battlecode.common.*;
 
