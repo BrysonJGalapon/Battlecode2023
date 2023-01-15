@@ -52,6 +52,7 @@ public class Decoding {
     case 1:   return HeadquartersState.BUILD_ANCHOR;
     case 2:   return HeadquartersState.BUILD_CARRIER;
     case 3:   return HeadquartersState.BUILD_LAUNCHER;
+    case 4:   return HeadquartersState.BUILD_AMPLIFIER;
     default: throw new RuntimeException("should not be here");
     }
   }

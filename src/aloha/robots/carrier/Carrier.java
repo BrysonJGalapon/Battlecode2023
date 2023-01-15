@@ -228,6 +228,9 @@ public class Carrier {
       return;
     }
 
+    // TODO add YOLO code, where if we're sufficiently far away from the HQ and
+    //  our health is <= 3, we throw our resources at an enemy.
+
     // If we can't yet deposit the resources, move in the direction of the HQ.
     Optional<Direction> dir = fuzzyPathFinder.findPath(rc.getLocation(), hqLoc, rc);
     if (dir.isPresent() && rc.canMove(dir.get())) {
@@ -286,6 +289,50 @@ public class Carrier {
     MapLocation myLocation = rc.getLocation();
 
     rc.setIndicatorString("trying to place anchor");
+
+    // If we have a dst but it's no longer neutral, reset dst and remove the neutral island from the cache.
+    //  Also, try to send a message out for that destination so that other carriers don't path to this dst.
+    if (dst != null) {
+      // If we can see the dst and its no longer neutral, reset
+      if (rc.canSenseLocation(dst)) {
+        int islandIdx = rc.senseIsland(dst);
+        Team islandOwner = rc.senseTeamOccupyingIsland(islandIdx);
+        if (islandOwner != Team.NEUTRAL) {
+          // Update our local caches
+          knownNeutralIslands.remove(dst);
+          addKnownIslands(islandOwner, dst, false);
+          communicateKnownIsland(islandOwner, dst, rc);
+          dst = null;
+        }
+      }
+
+      // If we receive a message that the dst belongs to an enemy, reset it.
+      if (dst != null) {
+        List<Message> messages = communicator.receiveMessages(MessageType.ENEMY_ISLAND_LOC, rc);
+        for (Message message : messages) {
+          if (message.loc.equals(dst)) {
+            // Update our local caches
+            knownEnemyIslands.remove(dst);
+            addKnownIslandsAndCommunicate(OPPONENT, dst, rc, true);
+            dst = null;
+          }
+        }
+      }
+
+      // If we receive a message that the dst already belongs to us, reset it.
+      if (dst != null) {
+        List<Message> messages = communicator.receiveMessages(MessageType.FRIENDLY_ISLAND_LOC, rc);
+        for (Message message : messages) {
+          if (message.loc.equals(dst)) {
+            // Update our local caches
+            knownFriendlyIslands.remove(dst);
+            addKnownIslandsAndCommunicate(MY_TEAM, dst, rc, true);
+            dst = null;
+          }
+        }
+      }
+    }
+
     // If we don't already have a neutral sky-island to path to, try to identify one
     if (dst == null) {
       // If we've cached any sky-island locations, path to the closest one
@@ -372,34 +419,7 @@ public class Carrier {
         ret = loc;
       }
 
-      // Cache friendly island locations.
-      //  value is false because we discovered this sky-island via sight, not communication.
-      //  to avoid blowing up the cached map, verify that no other island locations are close to the loc.
-      Map<MapLocation, Boolean> knownIslands = getKnownIslandsFor(islandOwner);
-      boolean existingIsland = false;
-      for (MapLocation knownLoc : knownIslands.keySet()) {
-        if (loc.distanceSquaredTo(knownLoc) <= SKY_ISLAND_REGION_RADIUS) {
-          existingIsland = true;
-          break;
-        }
-      }
-
-      if (!existingIsland) {
-        knownIslands.put(loc, false);
-
-        // TODO communicate sky island to amplifiers and launchers too. May need to read their messages too, to avoid blowup?
-        // Try to communicate the neutral island location
-        Message skyIslandMessage = Message.builder(getMessageTypeOf(islandOwner))
-          .recipient(Entity.CARRIERS)
-          .loc(loc)
-          .build();
-        // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
-        //  add it to a cached set of uncommunicated messages for retry later on.
-        boolean success = communicateSkyIslandMessage(skyIslandMessage, rc);
-        if (!success) {
-          uncommunicatedSkyIslandMessages.add(skyIslandMessage);
-        }
-      }
+      addKnownIslandsAndCommunicate(islandOwner, loc, rc, false);
     }
 
     return ret;
@@ -639,6 +659,49 @@ public class Carrier {
       return knownFriendlyIslands;
     } else {
       throw new RuntimeException("Should not be here");
+    }
+  }
+
+  private static boolean addKnownIslands(Team islandOwner, MapLocation loc, boolean isCommunicated) throws GameActionException {
+    // Cache island locations.
+    //  value is false because we discovered this sky-island via sight, not communication.
+    //  to avoid blowing up the cached map, verify that no other island locations are close to the loc.
+    Map<MapLocation, Boolean> knownIslands = getKnownIslandsFor(islandOwner);
+    boolean existingIsland = false;
+    for (MapLocation knownLoc : knownIslands.keySet()) {
+      if (loc.distanceSquaredTo(knownLoc) <= SKY_ISLAND_REGION_RADIUS) {
+        existingIsland = true;
+        break;
+      }
+    }
+
+    if (!existingIsland) {
+      knownIslands.put(loc, isCommunicated);
+    }
+
+    return existingIsland;
+  }
+
+  private static void addKnownIslandsAndCommunicate(Team islandOwner, MapLocation loc, RobotController rc, boolean isCommunicated) throws GameActionException {
+    boolean existingIsland = addKnownIslands(islandOwner, loc, isCommunicated);
+
+    if (!existingIsland) {
+      communicateKnownIsland(islandOwner, loc, rc);
+    }
+  }
+
+  private static void communicateKnownIsland(Team islandOwner, MapLocation loc, RobotController rc) throws GameActionException {
+    // TODO communicate sky island to amplifiers and launchers too. May need to read their messages too, to avoid blowup?
+    // Try to communicate the neutral island location
+    Message skyIslandMessage = Message.builder(getMessageTypeOf(islandOwner))
+      .recipient(Entity.CARRIERS)
+      .loc(loc)
+      .build();
+    // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
+    //  add it to a cached set of uncommunicated messages for retry later on.
+    boolean success = communicateSkyIslandMessage(skyIslandMessage, rc);
+    if (!success) {
+      uncommunicatedSkyIslandMessages.add(skyIslandMessage);
     }
   }
 }
