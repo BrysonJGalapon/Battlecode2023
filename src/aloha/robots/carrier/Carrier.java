@@ -51,6 +51,8 @@ public class Carrier {
   //  to avoid exploding the shared array and internal caches with sky-island locations.
   private static int SKY_ISLAND_REGION_RADIUS = 72;
 
+  private static boolean advertisedWellLocationToLaunchers = false;
+
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
       case TAKE_ANCHOR:       runTakeAnchor(rc);      senseLocalSkyIslands(null, rc); break;
@@ -176,6 +178,18 @@ public class Carrier {
     }
 
     rc.setIndicatorString("collecting resources: " + resourceType + " from " + dst);
+
+    if (!advertisedWellLocationToLaunchers) {
+      Message messageToLauncher = Message.builder(getMessageTypeOf(resourceType))
+        .recipient(Entity.LAUNCHERS)
+        .loc(dst)
+        .build();
+      boolean success = communicator.sendMessage(messageToLauncher, rc);
+      if (!success) {
+        uncommunicatedWellInfoMessages.add(messageToLauncher);
+      }
+      advertisedWellLocationToLaunchers = true;
+    }
 
     // If we're collecting from our well and we see an enemy within range, attack it
     if (myLocation.distanceSquaredTo(dst) <= 2 && rc.getResourceAmount(resourceType) >= 20) {

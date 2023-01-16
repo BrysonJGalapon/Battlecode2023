@@ -5,205 +5,269 @@ import battlecode.common.*;
 import java.util.*;
 import aloha.pathing.*;
 import aloha.utils.*;
+import aloha.communication.*;
+import static aloha.RobotPlayer.MY_TEAM;
+import static aloha.RobotPlayer.OPPONENT;
 
 public class Launcher {
+  private static LauncherState state = LauncherState.PROTECT_WELL;
+  private static final Communicator communicator = Communicator.newCommunicator();
   private static final PathFinder fuzzyPathFinder = new FuzzyPathFinder();
   private static final PathFinder explorePathFinder = new ExplorePathFinder();
-  private static final List<RobotType> include = Arrays.asList(new RobotType[] { RobotType.LAUNCHER });
-  private static MapLocation lastFlockLocation;
-  private static Set<MapLocation> seenIsland;
-  private static Set<MapLocation> recentlyVisitedIsland;
 
-public static void run(RobotController rc) throws GameActionException {
-    boolean attacked = enemyAction(rc);
+  private static MapLocation dst = null;
 
-    // No enemies found. Explore.
-    MapLocation localFlock = computeLocalWeightedFlock(rc).orElse(rc.getLocation());
-    goInGeneralDirectionOfFlock(rc, localFlock);
-    lastFlockLocation = localFlock;
+  private static Set<MapLocation> knownWellLocations = new HashSet<>();
 
-    if(!attacked) {
-        enemyAction(rc);
+  public static void run(RobotController rc) throws GameActionException {
+    switch(state) {
+      case FOLLOWER:            runFollower(rc);    break;
+      case OCCUPY_SKY_ISLAND:   runOccupySkyIsland(rc);   break;
+      case PROTECT_WELL:        runProtectWell(rc);  break;
+      case CROWD_HQ:            runCrowdHQ(rc); break;
+      default:                  throw new RuntimeException("should not be here");
     }
   }
 
-  public static void goInGeneralDirectionOfFlock(RobotController robotController, MapLocation localFlock) throws GameActionException {
-    int actionRadius = (int) robotController.getType().visionRadiusSquared;
-    int diffX = lastFlockLocation.x - localFlock.x;
-    int random = actionRadius;
-    if(diffX < 0) { //flock moved right 
-        diffX = robotController.getLocation().x + random;
-    } else {
-        diffX = robotController.getLocation().x - random;
-    }
+  private static void runFollower(RobotController rc) throws GameActionException {
+    rc.setIndicatorString("following");
+    MapLocation myLocation = rc.getLocation();
 
-    int diffY = lastFlockLocation.y - localFlock.y;
-    if(diffY < 0) { // flock moved up
-        diffY = robotController.getLocation().y + random;
-    } else {
-        diffY = robotController.getLocation().y - random;
-    }
-    MapLocation nextMapLocation = new MapLocation(diffX, diffY);
-    Optional<Direction> dir = explorePathFinder.findPath(robotController.getLocation(), nextMapLocation, robotController);
-    if (dir.isPresent() && robotController.canMove(dir.get())) {
-        robotController.move(dir.get());
-        robotController.setIndicatorString("Going general direction of flock!");
-    }
-  }
-
-  //TODO read communication buffer (flock to a location)
-
-  private static boolean enemyAction(RobotController robotController) throws GameActionException {
-      boolean attacked = false;
-    MapLocation myLocation = robotController.getLocation();
-
-    Optional<MapLocation> enemyLocation = computeLocalWeightedFlockEnemy(robotController);
-
-    if(enemyLocation.isPresent()) {
-        if (robotController.canAttack(enemyLocation.get())) {
-            robotController.setIndicatorString("Attacking");
-            robotController.attack(enemyLocation.get());
-            attacked = true;
-        }
-
-        Optional<MapLocation> avoidEnemy = avoidEnemy(robotController);
-        if(avoidEnemy.isPresent()) {
-            Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, avoidEnemy.get(), robotController);
-            if (dir.isPresent() && robotController.canMove(dir.get())) {
-                robotController.move(dir.get());
-                robotController.setIndicatorString("Moving away from enemy!");
-            }
-            return attacked;
-        }
-
-        //If we can win move towards the enemy
-        Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, enemyLocation.get(), robotController);
-        if (dir.isPresent() && robotController.canMove(dir.get()) && robotController.canSenseRobotAtLocation(enemyLocation.get())) {
-            robotController.move(dir.get());
-            robotController.setIndicatorString("Moving towards enemy!");
-        }
-    }
-    return attacked;
-  }
-
-  private static Optional<MapLocation> computeLocalWeightedFlock(RobotController robotController) throws GameActionException {
-      int visionRadius = robotController.getType().visionRadiusSquared;
-      Team team = robotController.getTeam();
-      RobotInfo[] visionRadiusTeamInfo = robotController.senseNearbyRobots(visionRadius, team);
-      MapLocation location = robotController.getLocation();
-      return getWeightedLocation(location, visionRadiusTeamInfo);
-  }
-
-  private static Optional<MapLocation> getWeightedLocation(MapLocation location,RobotInfo[] robotInfos) {
-        if(robotInfos.length == 0) {
-            return Optional.empty();
-        }
-
-        if(lastFlockLocation == null) {
-            lastFlockLocation = location;
-        }
-
-        int cohesionXPosition = 0;
-        int cohesionYPosition = 0;
-        int alignmentX = 0;
-        int alignmentY = 0;
-        int countedRobots = 0;
-        for(int i = 0; i < robotInfos.length; ++i) {
-            RobotInfo robot = robotInfos[i];
-            MapLocation robotMapLocation = robot.getLocation();
-            cohesionXPosition += robotMapLocation.x;
-            cohesionYPosition += robotMapLocation.y;
-            alignmentX += lastFlockLocation.x - robotMapLocation.x;
-            alignmentY += lastFlockLocation.y - robotMapLocation.y;
-            ++countedRobots;
-        }
-        cohesionXPosition /= countedRobots;
-        cohesionYPosition /= countedRobots;
-        
-        alignmentX /= countedRobots;
-        alignmentY /= countedRobots;
-
-        MapLocation localWeight = new MapLocation(alignmentX + cohesionXPosition, alignmentY + cohesionYPosition);
-
-        return Optional.of(localWeight);
-  }
-
-  private static Optional<MapLocation> avoidEnemy(RobotController robotController) throws GameActionException {
-    int actionRadius = robotController.getType().actionRadiusSquared;
-    Team team = robotController.getTeam();
-    RobotInfo[] actionRadiusTeamInfo = robotController.senseNearbyRobots(actionRadius, team);
-
-    MapLocation location = robotController.getLocation();
-    MapLocation localWeightTeam = getWeightedLocation(location, actionRadiusTeamInfo).orElse(robotController.getLocation());
-
-    RobotInfo[] actionRadiusEnemyInfo = robotController.senseNearbyRobots(actionRadius, team.opponent());
-    int maxRadiusAway = robotController.getType().visionRadiusSquared;
-    if(actionRadiusTeamInfo.length < actionRadiusEnemyInfo.length) {
-        MapLocation localWeightEnemy = getWeightedLocation(location, actionRadiusEnemyInfo).orElse(location);
-        int x = localWeightTeam.x - localWeightEnemy.x;
-        int y = localWeightTeam.y - localWeightEnemy.y;
-        if(x < 0) { // we are on the left side
-            x = Math.max(0, location.x - maxRadiusAway);
-        } else {
-            x = location.x + maxRadiusAway;
-        }
-
-        if(y < 0) { // we are on the bottom
-            y = Math.max(0, location.y - maxRadiusAway);
-        } else {
-            y = localWeightTeam.y + maxRadiusAway;
-        }
-
-        return Optional.of(new MapLocation(x, y));
-    }
-
-    return Optional.empty();
-  }
-
-  private static Optional<MapLocation> computeLocalWeightedFlockEnemy(RobotController robotController) throws GameActionException {
-      int actionRadius = robotController.getType().actionRadiusSquared;
-      Team team = robotController.getTeam();
-      RobotInfo[] actionRadiusTeamInfo = robotController.senseNearbyRobots(actionRadius, team);
-
-      MapLocation location = robotController.getLocation();
-      MapLocation localWeightTeam = getWeightedLocation(location, actionRadiusTeamInfo).orElse(robotController.getLocation());
-
-      RobotInfo[] actionRadiusEnemyInfo = robotController.senseNearbyRobots(actionRadius, team.opponent());
-
-      if(actionRadiusEnemyInfo.length > 0) {
-        // distance, robot index
-        int[] minDistance = {Integer.MAX_VALUE, 0};
-        // health, robot index, distance
-        int[] minHealth = {Integer.MAX_VALUE, 0, 0};
-        for(int i = 0; i < actionRadiusEnemyInfo.length; ++i) {
-            RobotInfo robot = actionRadiusEnemyInfo[i];
-            if(RobotType.HEADQUARTERS == robot.getType()) {
-                continue;
-            }
-            MapLocation robotMapLocation = robot.getLocation();
-            // We try to focus on an enemy by hitting the closest enemy to the relative
-            // action radius of the flock
-            int distance = localWeightTeam.distanceSquaredTo(robotMapLocation);
-            if(distance < minDistance[0]) {
-                minDistance[0] = distance;
-                minDistance[1] = i;
-            }
-            if(robot.health < minHealth[0]) {
-                minHealth[0] = robot.health;
-                minHealth[1] = i;
-                minHealth[2] = distance;
-            }
-            //enemy carrier holding anchor go kill TODO
-        }
-        // If we found a robot with low health hit it even if the distance may not be the minimal distance
-        // This way we can eliminate low health enemies
-        if(minHealth[2] * .75 < minDistance[0]) {
-              return Optional.of(actionRadiusEnemyInfo[minHealth[1]].getLocation());
-        }
-
-        return Optional.of(actionRadiusEnemyInfo[minDistance[1]].getLocation());
+    // Find a friendly robot in sight with the lowest ID -- call it the leader
+    RobotInfo[] friendlyRobots = rc.senseNearbyRobots(RobotType.LAUNCHER.visionRadiusSquared, MY_TEAM);
+    RobotInfo robotToFollow = null;
+    for (RobotInfo friendlyRobot : friendlyRobots) {
+      if (friendlyRobot.type != RobotType.LAUNCHER) {
+        continue; // Ignore non-launcher robots
       }
-      return Optional.empty();
+
+      if (robotToFollow == null || friendlyRobot.ID < robotToFollow.ID) {
+        robotToFollow = friendlyRobot;
+      }
+    }
+
+    // Find the enemy closest to us
+    RobotInfo[] enemyRobots = rc.senseNearbyRobots(RobotType.LAUNCHER.visionRadiusSquared, OPPONENT);
+    RobotInfo enemyToAttack = null;
+    for (RobotInfo enemy : enemyRobots) {
+      if (enemy.type == RobotType.HEADQUARTERS) {
+        continue; // No point in attacking HEADQUARTERS
+      }
+
+      if (enemyToAttack == null || myLocation.distanceSquaredTo(enemy.location) < myLocation.distanceSquaredTo(enemyToAttack.location)) {
+        enemyToAttack = enemy;
+      }
+    }
+
+    // No leader to follow, so attack if we can, and then move to a different state
+    if (robotToFollow == null) {
+      // Attack the closest enemy
+      if (enemyToAttack != null && rc.canAttack(enemyToAttack.location)) {
+        rc.attack(enemyToAttack.location);
+      }
+
+      state = LauncherState.PROTECT_WELL;
+      return;
+    }
+
+    // Get out of the follower state if there are too little resources, or the herd
+    //  is too big.
+    if (!enoughResources(rc) || herdIsTooBig(rc)) {
+      // Attack the closest enemy
+      if (enemyToAttack != null && rc.canAttack(enemyToAttack.location)) {
+        rc.attack(enemyToAttack.location);
+      }
+
+      state = LauncherState.PROTECT_WELL;
+      return;
+    }
+
+    // If the leader we are following is getting too far away, or we don't see any enemies to attack, path closer to it
+    if (myLocation.distanceSquaredTo(robotToFollow.location) > 2 || enemyToAttack == null) {
+      Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, robotToFollow.location, rc);
+      if (dir.isPresent() && rc.canMove(dir.get())) {
+        rc.move(dir.get());
+      }
+    } else { // Otherwise, path towards the enemy
+      Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, enemyToAttack.location, rc);
+      if (dir.isPresent() && rc.canMove(dir.get())) {
+        rc.move(dir.get());
+      }
+    }
+
+    // Attack the closest enemy
+    if (enemyToAttack != null && rc.canAttack(enemyToAttack.location)) {
+      rc.attack(enemyToAttack.location);
+    }
   }
 
+  private static void runProtectWell(RobotController rc) throws GameActionException {
+    rc.setIndicatorString("protecting");
+    MapLocation myLocation = rc.getLocation();
+
+    // Attack the enemy closest to us
+    RobotInfo[] enemies = rc.senseNearbyRobots(RobotType.LAUNCHER.visionRadiusSquared, OPPONENT);
+    RobotInfo enemyToAttack = null;
+    for (RobotInfo enemy : enemies) {
+      if (enemy.type != RobotType.HEADQUARTERS && (enemyToAttack == null ||  myLocation.distanceSquaredTo(enemy.location) <  myLocation.distanceSquaredTo(enemyToAttack.location))) {
+        enemyToAttack = enemy;
+      }
+    }
+    if (enemyToAttack != null) {
+      if (rc.canAttack(enemyToAttack.location)) {
+        rc.attack(enemyToAttack.location);
+      }
+    }
+
+    // If we don't already have a well location set, try to find a well location
+    if (dst == null) {
+      // Try to use the closest known cached well location.
+      for (MapLocation loc : knownWellLocations) {
+        if (dst == null || myLocation.distanceSquaredTo(loc) < myLocation.distanceSquaredTo(dst)) {
+          dst = loc;
+        }
+      }
+
+      // No cached well locations. Find nearby wells in sight, and path to the closest one.
+      WellInfo[] wells = rc.senseNearbyWells();
+      for (WellInfo well : wells) {
+        if (dst == null || myLocation.distanceSquaredTo(well.getMapLocation()) < myLocation.distanceSquaredTo(dst)) {
+          dst = well.getMapLocation();
+        }
+
+        knownWellLocations.add(well.getMapLocation());
+      }
+
+      // No wells in sight. Get messages for wells and find the closest one.
+      if (dst == null) {
+        for (Message mnWellMessage : communicator.receiveMessages(MessageType.MN_WELL_LOC, rc) ) {
+          knownWellLocations.add(mnWellMessage.loc);
+        }
+        for (Message adWellMessage : communicator.receiveMessages(MessageType.AD_WELL_LOC, rc) ) {
+        knownWellLocations.add(adWellMessage.loc);
+        }
+        for (MapLocation wellLocation : knownWellLocations) {
+          if (dst == null || myLocation.distanceSquaredTo(wellLocation) < myLocation.distanceSquaredTo(wellLocation)) {
+            dst = wellLocation;
+          }
+        }
+      }
+
+      // Could not find any well locations. Explore, or follow the enemy we attacked.
+      if (dst == null) {
+        if (enemyToAttack != null) {
+          Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, enemyToAttack.location, rc);
+          if (dir.isPresent() && rc.canMove(dir.get())) {
+            rc.move(dir.get());
+          }
+        } else {
+          Optional<Direction> dir = explorePathFinder.findPath(myLocation, null, rc);
+          if (dir.isPresent() && rc.canMove(dir.get())) {
+            rc.move(dir.get());
+          }
+        }
+        return;
+      }
+    }
+
+    // If we're too far from our dst, path to it.
+    if (myLocation.distanceSquaredTo(dst) > 5) {
+      Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, dst, rc);
+      if (dir.isPresent() && rc.canMove(dir.get())) {
+        rc.move(dir.get());
+      }
+    }
+
+    // Find a friendly robot in sight with the lowest ID, it can be a possible leader
+    RobotInfo[] friendlyRobots = rc.senseNearbyRobots(RobotType.LAUNCHER.visionRadiusSquared, MY_TEAM);
+    RobotInfo robotToFollow = null;
+    for (RobotInfo friendlyRobot : friendlyRobots) {
+      if (friendlyRobot.type != RobotType.LAUNCHER) {
+        continue; // Ignore non-launcher robots
+      }
+
+      if (friendlyRobot.ID < rc.getID() && (robotToFollow == null || friendlyRobot.ID < robotToFollow.ID)) {
+        robotToFollow = friendlyRobot;
+      }
+    }
+
+    // Found a different leader, follow that robot instead, but only if we have
+    //  enough resources to justify losing the resposibility this robot had.
+    if (robotToFollow != null && enoughResources(rc)) {
+      if (myLocation.distanceSquaredTo(robotToFollow.location) > 2 || enemyToAttack == null) {
+        Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, robotToFollow.location, rc);
+        if (dir.isPresent() && rc.canMove(dir.get())) {
+          rc.move(dir.get());
+        }
+      } else { // Otherwise, path towards the enemy
+        Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, enemyToAttack.location, rc);
+        if (dir.isPresent() && rc.canMove(dir.get())) {
+          rc.move(dir.get());
+        }
+      }
+
+      state = LauncherState.FOLLOWER;
+      return;
+    }
+
+    // No new leader found, or not enough resources to justify herding at this point
+
+    if (enemyToAttack != null) {
+      Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, enemyToAttack.location, rc);
+      if (dir.isPresent() && rc.canMove(dir.get())) {
+        rc.move(dir.get());
+      }
+
+      return;
+    }
+
+    // No enemies in sight. Path to the carrier closest to the dst.
+    RobotInfo targetCarrier = null;
+    for (RobotInfo friendlyRobot : friendlyRobots) {
+      if (friendlyRobot.type != RobotType.CARRIER) {
+        continue;
+      }
+
+      if (targetCarrier == null || friendlyRobot.location.distanceSquaredTo(dst) < targetCarrier.location.distanceSquaredTo(dst)) {
+        targetCarrier = friendlyRobot;
+      }
+    }
+    if (targetCarrier != null) {
+      Optional<Direction> dir = fuzzyPathFinder.findPath(myLocation, targetCarrier.location, rc);
+      if (dir.isPresent() && rc.canMove(dir.get())) {
+        rc.move(dir.get());
+      }
+
+      return;
+    }
+
+
+    // Search for something to attack
+    Optional<Direction> dir = explorePathFinder.findPath(myLocation, null, rc);
+    if (dir.isPresent() && rc.canMove(dir.get())) {
+      rc.move(dir.get());
+    }
+  }
+
+  private static void runOccupySkyIsland(RobotController rc) throws GameActionException {
+    // TODO
+  }
+
+  private static void runCrowdHQ(RobotController rc) throws GameActionException {
+    // TODO
+  }
+
+  private static boolean enoughResources(RobotController rc) throws GameActionException {
+    // TODO tune the magic number. Smaller means we herd more loosely, larger means
+    //  we herd more strongly
+    int magicNumber = 80;
+    return rc.getRobotCount() * magicNumber > rc.getMapHeight() * rc.getMapWidth();
+  }
+
+  private static boolean herdIsTooBig(RobotController rc) throws GameActionException {
+    RobotInfo[] friendlyRobots = rc.senseNearbyRobots(RobotType.LAUNCHER.visionRadiusSquared, MY_TEAM);
+    // TODO tune the magic number. Smaller means larger herds, larger means smaller herds.
+    int magicNumber = 3;
+    return friendlyRobots.length * magicNumber > RobotType.LAUNCHER.visionRadiusSquared;
+  }
 }
