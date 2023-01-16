@@ -72,6 +72,7 @@ public class Encoding {
     case BUILD_ANCHOR:        return 1;
     case BUILD_CARRIER:       return 2;
     case BUILD_LAUNCHER:      return 3;
+    case BUILD_AMPLIFIER:     return 4;
     default: throw new RuntimeException("should not be here");
     }
   }

@@ -4,6 +4,7 @@ import battlecode.common.*;
 import java.util.*;
 import friday.utils.*;
 import friday.pathing.*;
+import friday.robots.headquarters.HeadquartersState;
 import friday.communication.*;
 import static friday.RobotPlayer.OPPONENT;
 import static friday.RobotPlayer.MY_TEAM;
@@ -52,10 +53,10 @@ public class Carrier {
 
   public static void run(RobotController rc) throws GameActionException {
     switch(state) {
-      case TAKE_ANCHOR:       runTakeAnchor(rc);      break;
+      case TAKE_ANCHOR:       runTakeAnchor(rc);      senseLocalSkyIslands(null, rc); break;
       case PLACE_ANCHOR:      runPlaceAnchor(rc);     break;
       case COLLECT_RESOURCE:  runCollectResource(rc); break;
-      case DEPOSIT_RESOURCE:  runDepositResource(rc); break;
+      case DEPOSIT_RESOURCE:  runDepositResource(rc); senseLocalSkyIslands(null, rc); break;
       default:                throw new RuntimeException("should not be here");
     }
 
@@ -74,19 +75,32 @@ public class Carrier {
       hqLoc = getHQLoc(rc);
     }
 
-    // Do a coin-flip to determine which resource type to collect
     if (resourceType == null) {
-      if (rng.nextBoolean()) {
-        resourceType = ResourceType.ADAMANTIUM;
-      } else {
-        resourceType = ResourceType.MANA;
+      // Message hqStateMessage = communicator.receiveMessages(MessageType.HQ_STATE, rc).get(0);
+      // // Try to collect resource that the HQ needs.
+      // if (hqStateMessage.hqState == HeadquartersState.BUILD_CARRIER) {
+      //   resourceType = ResourceType.ADAMANTIUM;
+      // } else if (hqStateMessage.hqState == HeadquartersState.BUILD_LAUNCHER) {
+      //   resourceType = ResourceType.MANA;
+      // }
+
+      // Do a coin-flip to determine which resource type to collect
+      if (resourceType == null) {
+        if (rng.nextBoolean()) {
+          resourceType = ResourceType.ADAMANTIUM;
+        } else {
+          resourceType = ResourceType.MANA;
+        }
       }
     }
 
     rc.setIndicatorString("collecting resources: " + resourceType);
 
+    // TODO check that dst is still a location of our resource type, and reset it if necessary
+
     // If we don't already have a resource location to path to, try to identify one
     if (dst == null) {
+      rc.setIndicatorString("collecting resources: " + resourceType + " no dst set " + Clock.getBytecodesLeft());
       // If we've cached any Mn, Ad, or Ex wells, path to the closest one
       Map<MapLocation, Boolean> knownWells = getKnownWellsFor(resourceType);
       for (MapLocation loc: knownWells.keySet()) {
@@ -97,15 +111,20 @@ public class Carrier {
 
       // No cached resource locations. If we see any wells of our resourceType in sight, path to the closest one
       if (dst == null) {
+        rc.setIndicatorString("collecting resources: " + resourceType + " no cached resources " + Clock.getBytecodesLeft());
         WellInfo[] wellInfos = rc.senseNearbyWells();
         for (WellInfo wellInfo : wellInfos) {
           if ((wellInfo.getResourceType() == resourceType) && (dst == null || myLocation.distanceSquaredTo(wellInfo.getMapLocation()) < myLocation.distanceSquaredTo(dst))) {
             dst = wellInfo.getMapLocation();
           }
 
+         Map<MapLocation,Boolean> otherKnownWells = getKnownWellsFor(wellInfo.getResourceType());
+
           // Cache seen well location, for faster lookup next time
           //  value is false because we discovered this well via sight, not by communication.
-          getKnownWellsFor(wellInfo.getResourceType()).put(wellInfo.getMapLocation(), false);
+          if (!otherKnownWells.containsKey(wellInfo.getMapLocation())) {
+            otherKnownWells.put(wellInfo.getMapLocation(), false);
+          }
 
           // If we see a resource well, try to communicate the well info even if
           //  we don't collect from it, since other robots might want to collect from
@@ -115,17 +134,22 @@ public class Carrier {
             .loc(wellInfo.getMapLocation())
             .build();
 
-          // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
-          //  add it to a cached set of uncommunicated messages for retry later on.
-          boolean success = communicateWellInfoMessage(wellInfoMessage, rc);
-          if (!success) {
-            uncommunicatedWellInfoMessages.add(wellInfoMessage);
+          // If we've already communicated this message in a previous turn, do not communicate it again
+          boolean alreadyCommunicated = otherKnownWells.getOrDefault(wellInfo.getMapLocation(), false);
+          if (!alreadyCommunicated) {
+            // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
+            //  add it to a cached set of uncommunicated messages for retry later on.
+            boolean success = communicateWellInfoMessage(wellInfoMessage, rc);
+            if (!success) {
+              uncommunicatedWellInfoMessages.add(wellInfoMessage);
+            }
           }
         }
       }
 
       // No wells of our resourceType in sight. If we received some well messages for our resourceType, path to the closest one
       if (dst == null) {
+        rc.setIndicatorString("collecting resources: " + resourceType + " no resources in sight " + Clock.getBytecodesLeft());
         List<Message> messages = communicator.receiveMessages(getMessageTypeOf(resourceType), rc);
         for (Message message : messages) {
           if (dst == null || myLocation.distanceSquaredTo(message.loc) < myLocation.distanceSquaredTo(dst)) {
@@ -140,13 +164,18 @@ public class Carrier {
 
       // No wells of our resourceType identified. Search for the given resource type.
       if (dst == null) {
+        rc.setIndicatorString("collecting resources: " + resourceType + " exploring for resource " + Clock.getBytecodesLeft());
         Optional<Direction> dir = explorePathFinder.findPath(myLocation, null, rc);
+        rc.setIndicatorString("collecting resources: " + resourceType + " found direction "  + dir + " " + Clock.getBytecodesLeft());
         if (dir.isPresent() && rc.canMove(dir.get())) {
           rc.move(dir.get());
         }
+
         return;
       }
     }
+
+    rc.setIndicatorString("collecting resources: " + resourceType + " from " + dst);
 
     // If we're collecting from our well and we see an enemy within range, attack it
     if (myLocation.distanceSquaredTo(dst) <= 2 && rc.getResourceAmount(resourceType) >= 20) {
@@ -220,6 +249,9 @@ public class Carrier {
       return;
     }
 
+    // TODO add YOLO code, where if we're sufficiently far away from the HQ and
+    //  our health is <= 3, we throw our resources at an enemy.
+
     // If we can't yet deposit the resources, move in the direction of the HQ.
     Optional<Direction> dir = fuzzyPathFinder.findPath(rc.getLocation(), hqLoc, rc);
     if (dir.isPresent() && rc.canMove(dir.get())) {
@@ -278,6 +310,50 @@ public class Carrier {
     MapLocation myLocation = rc.getLocation();
 
     rc.setIndicatorString("trying to place anchor");
+
+    // If we have a dst but it's no longer neutral, reset dst and remove the neutral island from the cache.
+    //  Also, try to send a message out for that destination so that other carriers don't path to this dst.
+    if (dst != null) {
+      // If we can see the dst and its no longer neutral, reset
+      if (rc.canSenseLocation(dst)) {
+        int islandIdx = rc.senseIsland(dst);
+        Team islandOwner = rc.senseTeamOccupyingIsland(islandIdx);
+        if (islandOwner != Team.NEUTRAL) {
+          // Update our local caches
+          knownNeutralIslands.remove(dst);
+          addKnownIslands(islandOwner, dst, false);
+          communicateKnownIsland(islandOwner, dst, rc);
+          dst = null;
+        }
+      }
+
+      // If we receive a message that the dst belongs to an enemy, reset it.
+      if (dst != null) {
+        List<Message> messages = communicator.receiveMessages(MessageType.ENEMY_ISLAND_LOC, rc);
+        for (Message message : messages) {
+          if (message.loc.equals(dst)) {
+            // Update our local caches
+            knownEnemyIslands.remove(dst);
+            addKnownIslandsAndCommunicate(OPPONENT, dst, rc, true);
+            dst = null;
+          }
+        }
+      }
+
+      // If we receive a message that the dst already belongs to us, reset it.
+      if (dst != null) {
+        List<Message> messages = communicator.receiveMessages(MessageType.FRIENDLY_ISLAND_LOC, rc);
+        for (Message message : messages) {
+          if (message.loc.equals(dst)) {
+            // Update our local caches
+            knownFriendlyIslands.remove(dst);
+            addKnownIslandsAndCommunicate(MY_TEAM, dst, rc, true);
+            dst = null;
+          }
+        }
+      }
+    }
+
     // If we don't already have a neutral sky-island to path to, try to identify one
     if (dst == null) {
       // If we've cached any sky-island locations, path to the closest one
@@ -289,98 +365,7 @@ public class Carrier {
 
       // No cached sky-islands to path to. If we see any neutral islands in sight, path to the closest one
       if (dst == null) {
-        int[] nearbyIslands = rc.senseNearbyIslands();
-        for (int nearbyIsland : nearbyIslands) {
-          MapLocation loc = rc.senseNearbyIslandLocations(nearbyIsland)[0];
-          Team team = rc.senseTeamOccupyingIsland(nearbyIsland);
-
-          if (team == Team.NEUTRAL) {
-            if (dst == null || myLocation.distanceSquaredTo(loc) < myLocation.distanceSquaredTo(dst)) {
-              dst = loc;
-            }
-
-            // Cache seen sky-island location, for faster lookup next time
-            //  value is false because we discovered this sky-island via sight, not communication.
-            //  to avoid blowing up the cached map, verify that no other island locations are close to the loc.
-            boolean existingIsland = false;
-            for (MapLocation knownLoc : knownNeutralIslands.keySet()) {
-              if (loc.distanceSquaredTo(knownLoc) <= SKY_ISLAND_REGION_RADIUS) {
-                existingIsland = true;
-                break;
-              }
-            }
-            if (!existingIsland) {
-              knownNeutralIslands.put(loc, false);
-
-              // TODO communicate sky island to amplifiers and launchers too. May need to read their messages too, to avoid blowup?
-              // Try to communicate the neutral island location
-              Message skyIslandMessage = Message.builder(MessageType.NEUTRAL_ISLAND_LOC)
-                .recipient(Entity.CARRIERS)
-                .loc(loc)
-                .build();
-              // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
-              //  add it to a cached set of uncommunicated messages for retry later on.
-              boolean success = communicateSkyIslandMessage(skyIslandMessage, rc);
-              if (!success) {
-                uncommunicatedSkyIslandMessages.add(skyIslandMessage);
-              }
-            }
-          } else if (team == OPPONENT){
-            // Cache seen enemy island locations.
-            //  value is false because we discovered this sky-island via sight, not communication.
-            //  to avoid blowing up the cached map, verify that no other island locations are close to the loc.
-            boolean existingIsland = false;
-            for (MapLocation knownLoc : knownEnemyIslands.keySet()) {
-              if (loc.distanceSquaredTo(knownLoc) <= SKY_ISLAND_REGION_RADIUS) {
-                existingIsland = true;
-                break;
-              }
-            }
-            if (!existingIsland) {
-              knownEnemyIslands.put(loc, false);
-
-              // TODO communicate sky island to amplifiers and launchers too. May need to read their messages too, to avoid blowup?
-              // Try to communicate the enemy island location
-              Message skyIslandMessage = Message.builder(MessageType.ENEMY_ISLAND_LOC)
-                .recipient(Entity.CARRIERS)
-                .loc(loc)
-                .build();
-              // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
-              //  add it to a cached set of uncommunicated messages for retry later on.
-              boolean success = communicateSkyIslandMessage(skyIslandMessage, rc);
-              if (!success) {
-                uncommunicatedSkyIslandMessages.add(skyIslandMessage);
-              }
-            }
-          } else {
-            // Cache friendly island locations.
-            //  value is false because we discovered this sky-island via sight, not communication.
-            //  to avoid blowing up the cached map, verify that no other island locations are close to the loc.
-            boolean existingIsland = false;
-            for (MapLocation knownLoc : knownFriendlyIslands.keySet()) {
-              if (loc.distanceSquaredTo(knownLoc) <= SKY_ISLAND_REGION_RADIUS) {
-                existingIsland = true;
-                break;
-              }
-            }
-            if (!existingIsland) {
-              knownFriendlyIslands.put(loc, false);
-
-              // TODO communicate sky island to amplifiers and launchers too. May need to read their messages too, to avoid blowup?
-              // Try to communicate the enemy island location
-              Message skyIslandMessage = Message.builder(MessageType.FRIENDLY_ISLAND_LOC)
-                .recipient(Entity.CARRIERS)
-                .loc(loc)
-                .build();
-              // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
-              //  add it to a cached set of uncommunicated messages for retry later on.
-              boolean success = communicateSkyIslandMessage(skyIslandMessage, rc);
-              if (!success) {
-                uncommunicatedSkyIslandMessages.add(skyIslandMessage);
-              }
-            }
-          }
-        }
+        dst = senseLocalSkyIslands(Team.NEUTRAL, rc);
       }
 
       // No sky-islands in sight. If we received some messages for neutral sky islands, path to the closest one.
@@ -437,6 +422,28 @@ public class Carrier {
     if (dir.isPresent() && rc.canMove(dir.get())) {
       rc.move(dir.get());
     }
+  }
+
+  // senseLocalSkyIslands senses the sky islands around this robot, and returns
+  //  the closest sky island location owned by the given team, if any.
+  private static MapLocation senseLocalSkyIslands(Team team, RobotController rc) throws GameActionException {
+    MapLocation myLocation = rc.getLocation();
+    MapLocation ret = null;
+
+    int[] nearbyIslands = rc.senseNearbyIslands();
+    for (int nearbyIsland : nearbyIslands) {
+      MapLocation loc = rc.senseNearbyIslandLocations(nearbyIsland)[0];
+      Team islandOwner = rc.senseTeamOccupyingIsland(nearbyIsland);
+
+      // If the island is owned by the given team, update the returned MapLocation.
+      if (islandOwner == team && (ret == null || myLocation.distanceSquaredTo(loc) < myLocation.distanceSquaredTo(ret))) {
+        ret = loc;
+      }
+
+      addKnownIslandsAndCommunicate(islandOwner, loc, rc, false);
+    }
+
+    return ret;
   }
 
   private static void runAttackLoc(RobotController rc) throws GameActionException {
@@ -530,6 +537,11 @@ public class Carrier {
     // Try to send all of our messages
     Set<Message> sentMessages = new HashSet<>();
     for (Message message : uncommunicatedSkyIslandMessages) {
+      // If we're about to run out of bytecode, stop communicating messages
+      if (Clock.getBytecodesLeft() <= 1500) {
+        break;
+      }
+
       boolean success = communicateSkyIslandMessage(message, rc);
       if (success) {
         sentMessages.add(message);
@@ -556,6 +568,11 @@ public class Carrier {
     // Try to send all of our messages
     Set<Message> sentMessages = new HashSet<>();
     for (Message message : uncommunicatedWellInfoMessages) {
+      // If we're about to run out of bytecode, stop communicating messages
+      if (Clock.getBytecodesLeft() <= 1500) {
+        break;
+      }
+
       boolean success = communicateWellInfoMessage(message, rc);
       if (success) {
         sentMessages.add(message);
@@ -581,11 +598,7 @@ public class Carrier {
     }
 
     // No sky-island was already communicated that's similar to this sky-island. Try to communicate it.
-    boolean success = communicator.sendMessage(skyIslandMessage, rc);
-    if (success) {
-      // Log.println("Successfully communicated sky island message : " + skyIslandMessage.messageType + " at " + skyIslandMessage.loc);
-    }
-    return success;
+    return communicator.sendMessage(skyIslandMessage, rc);
   }
 
   private static boolean communicateWellInfoMessage(Message wellInfoMessage, RobotController rc) throws GameActionException {
@@ -602,7 +615,12 @@ public class Carrier {
     }
 
     // No well was already communicated that's similar to this well. Try to communicate it.
-    return communicator.sendMessage(wellInfoMessage, rc);
+    boolean success = communicator.sendMessage(wellInfoMessage, rc);
+    if (success) {
+      // Cache the location as communicated
+      knownWells.put(wellInfoMessage.loc, true);
+    }
+    return success;
   }
 
   private static MessageType getMessageTypeOf(ResourceType resourceType)  {
@@ -611,6 +629,18 @@ public class Carrier {
       case MANA:        return MessageType.MN_WELL_LOC;
       case ELIXIR:      return MessageType.EX_WELL_LOC;
       default:          throw new RuntimeException("should not be here");
+    }
+  }
+
+  private static MessageType getMessageTypeOf(Team team)  {
+    if (team.equals(Team.NEUTRAL)) {
+      return MessageType.NEUTRAL_ISLAND_LOC;
+    } else if (team.equals(OPPONENT)) {
+      return MessageType.ENEMY_ISLAND_LOC;
+    } else if (team.equals(MY_TEAM)) {
+      return MessageType.FRIENDLY_ISLAND_LOC;
+    } else {
+      throw new RuntimeException("Should not be here");
     }
   }
 
@@ -650,6 +680,49 @@ public class Carrier {
       return knownFriendlyIslands;
     } else {
       throw new RuntimeException("Should not be here");
+    }
+  }
+
+  private static boolean addKnownIslands(Team islandOwner, MapLocation loc, boolean isCommunicated) throws GameActionException {
+    // Cache island locations.
+    //  value is false because we discovered this sky-island via sight, not communication.
+    //  to avoid blowing up the cached map, verify that no other island locations are close to the loc.
+    Map<MapLocation, Boolean> knownIslands = getKnownIslandsFor(islandOwner);
+    boolean existingIsland = false;
+    for (MapLocation knownLoc : knownIslands.keySet()) {
+      if (loc.distanceSquaredTo(knownLoc) <= SKY_ISLAND_REGION_RADIUS) {
+        existingIsland = true;
+        break;
+      }
+    }
+
+    if (!existingIsland) {
+      knownIslands.put(loc, isCommunicated);
+    }
+
+    return existingIsland;
+  }
+
+  private static void addKnownIslandsAndCommunicate(Team islandOwner, MapLocation loc, RobotController rc, boolean isCommunicated) throws GameActionException {
+    boolean existingIsland = addKnownIslands(islandOwner, loc, isCommunicated);
+
+    if (!existingIsland) {
+      communicateKnownIsland(islandOwner, loc, rc);
+    }
+  }
+
+  private static void communicateKnownIsland(Team islandOwner, MapLocation loc, RobotController rc) throws GameActionException {
+    // TODO communicate sky island to amplifiers and launchers too. May need to read their messages too, to avoid blowup?
+    // Try to communicate the neutral island location
+    Message skyIslandMessage = Message.builder(getMessageTypeOf(islandOwner))
+      .recipient(Entity.CARRIERS)
+      .loc(loc)
+      .build();
+    // If we couldn't communicate the message (possibly due to not being in range of HQ, or amplifier, or sky-island)
+    //  add it to a cached set of uncommunicated messages for retry later on.
+    boolean success = communicateSkyIslandMessage(skyIslandMessage, rc);
+    if (!success) {
+      uncommunicatedSkyIslandMessages.add(skyIslandMessage);
     }
   }
 }
