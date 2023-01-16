@@ -69,10 +69,10 @@ public strictfp class RobotPlayer {
 
             // Keep turnCount and round number in sync. These can be de-synced if
             //  we overuse bytecode. Note that this does NOT catch the case of an infinite loop.
-            if (turnCount != rc.getRoundNum()-birthRound) {
-              Log.println("I'm a " + rc.getType() + " and my turnCount is " + turnCount + " when it should be " + (rc.getRoundNum()-birthRound));
-              rc.resign();
-            }
+            // if (turnCount != rc.getRoundNum()-birthRound) {
+            //   Log.println("I'm a " + rc.getType() + " and my turnCount is " + turnCount + " when it should be " + (rc.getRoundNum()-birthRound));
+            //   rc.resign();
+            // }
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode.
             try {
