@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public class FuzzyPathFinder extends WallFollower implements PathFinder {
     private static final int IMMOVABLE_OBJECT_COST = 1000;
-    private static final int MAX_VISITED_SIZE = 7;
+    private static final int MAX_VISITED_SIZE = 10;
     private final Deque<MapLocation> visited = new LinkedList<>();
     private static final Random rng = Utils.getRng();
 

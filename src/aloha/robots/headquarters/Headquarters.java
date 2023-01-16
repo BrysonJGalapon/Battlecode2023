@@ -98,6 +98,9 @@ public class Headquarters {
     if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
         rc.buildRobot(RobotType.CARRIER, newLoc);
 
+        // If we have enough adamantium and mana, build amplifiers
+        if (rc.getResourceAmount(ResourceType.MANA) >= 40 && rc.getResourceAmount(ResourceType.ADAMANTIUM))
+
         // If we have enough mana, build launchers
         if (rc.getResourceAmount(ResourceType.MANA) >= 60) {
           state = HeadquartersState.BUILD_LAUNCHER;
