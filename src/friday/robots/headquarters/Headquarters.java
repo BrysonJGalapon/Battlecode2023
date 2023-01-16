@@ -99,7 +99,9 @@ public class Headquarters {
         rc.buildRobot(RobotType.CARRIER, newLoc);
 
         // If we have enough adamantium and mana, build amplifiers
-        if (rc.getResourceAmount(ResourceType.MANA) >= 40 && rc.getResourceAmount(ResourceType.ADAMANTIUM))
+        if (rc.getResourceAmount(ResourceType.MANA) >= 40 && rc.getResourceAmount(ResourceType.ADAMANTIUM) >= 40) {
+          // TODO
+        }
 
         // If we have enough mana, build launchers
         if (rc.getResourceAmount(ResourceType.MANA) >= 60) {
